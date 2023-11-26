@@ -1,11 +1,12 @@
 # btenforce
-Reactivates bluetooth automatically.
-Checks if Bluetooh is turned on.  If it's off, turn it back on and send
-info via json to make.com where it then sends an email to the student and the 
-tech department. Use in conjuction with a launch daemon that runs every 10 seconds.
+
+Students love to turn Bluetooth off so that classroom tools are ineffective. You cannot force Bluetooth to be on via your MDM tools because it then prevents the user from connecting peripherals. Also, it’s possible that you will force Bluetooth off if it was off when the profile is installed.
+
+A very simple launch daemon checks if Bluetooth is turned off.  If it's off, a script turns it back on and send info via json to make.com where it then sends an email to the student and the tech department. I have found that setting the launch daemon to ten seconds works the best.
  
-Place this script in: /Library/Scripts/BTEnforce.sh
-The launch daemon should be placed in /Library/LaunchDaemons/com.itech.btenforce.plist
+
+/Library/Scripts/BTEnforce.sh
+/Library/LaunchDaemons/com.itech.btenforce.plist
 
 blueutil must be installed first - https://github.com/toy/blueutil
 
