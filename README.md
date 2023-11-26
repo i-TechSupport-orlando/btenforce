@@ -1,0 +1,2 @@
+# btenforce
+Reactivates bluetooth automatically.
