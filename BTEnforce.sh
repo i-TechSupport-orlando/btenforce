@@ -11,6 +11,7 @@
 # blueutil must be installed first - https://github.com/toy/blueutil
 #
 # Keith Myers 9/7/2023 | https://www.i-techsupport.com/educational-tech/
+# https://github.com/keithemyers/btenforce
 ########################################################################################
 
 # Get the computer name for the log.
