@@ -7,7 +7,7 @@ A very simple launch daemon runs a script that checks if Bluetooth is turned off
 
 The email component is handled by make.com via a webhook.
  
-Copy the files to the following paths, then run restartDaemon.sh to turn it on.
+Copy the files to the following paths, then run restartDaemon.sh to turn it on, or restart the computer.
 
 /Library/Scripts/BTEnforce.sh
 
