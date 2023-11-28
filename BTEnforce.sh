@@ -32,6 +32,7 @@ butil="/usr/local/bin/blueutil"
 # Fails if the bluetooth utility isn't installed.
 if [[ ! -f "$butil"  ]]; then
 	echo "Unable to find $butil, exiting."
+	logger -is -t BTEnforce "Unable to find $butil"
 	exit 1
 fi
 
