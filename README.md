@@ -1,7 +1,7 @@
 # btenforce for macOS
 Tested on macOS 13, 14, 15.5
 
-blueutil must be installed first - https://github.com/toy/blueutil
+blueutil must be installed first - https://github.com/toy/blueutil. The packaged release of btenforce contains blueutil.
 
 Students love to turn Bluetooth off in an effort to thwart classroom monitoring tools. You cannot force Bluetooth to be on with an MDM profile because it then prevents the end-user from connecting peripherals. Also, if Bluetooth is off at the time you install the profile, the end-user will be unable to turn it back on.
 
