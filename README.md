@@ -4,15 +4,24 @@ Students love to turn Bluetooth off in an effort to thwart classroom monitoring 
 
 A very simple launch daemon runs a script that checks if Bluetooth is turned off.  If it's off, the script turns it back on and sends info to make.com where it then sends an email to the student and the tech department. I have found that setting the launch daemon to ten seconds works the best. I originally had it set higher, but the students would continually turn it back off. Ten seconds seems to be too agravating for even the most determined students. Once they receive the emails and realize that their actions are being logged, they tend to stop trying.
 
-
-The email component is handled by make.com via a webhook.
+## Options
+The features are control via `/Library/Application Support/i-Tech/btenforce.env`
  
-Copy the files to the following paths, then run restartDaemon.sh to turn it on, or restart the computer.
 
-/Library/Scripts/BTEnforce.sh
+### Safari Browser Prevention
+To force students to use the school's managed Chrome browser, you can enable Safari blocking by changing the config entry to 'enforce'
 
-/Library/LaunchDaemons/com.itech.btenforce.plist
+`SAFARI_CONTROL="enforce"`
 
+Safari may be blocked via two methods:
+-osascript -- This is the most accurate method as it will only alert to open Safari windows.
+-pgrep -- If osascript isn't possible due to a TCC restriction and you cannot create a PPPC profile, this is a good alternative. It will have some false positives.
+
+
+### Delete Login Items
+`LOGIN_ITEM_CONTROL="enforce"
+
+Deletes all user added login items. This prevents the students from loading software when the machine boots.
 
 
 Tested on macOS 13, 14, 15.5
