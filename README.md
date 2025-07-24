@@ -15,7 +15,7 @@ Copy the files to the following paths, then run restartDaemon.sh to turn it on, 
 
 
 
-Tested on macOS 13 & 14.
+Tested on macOS 13, 14, 15.5
 
 blueutil must be installed first - https://github.com/toy/blueutil
 
