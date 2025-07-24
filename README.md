@@ -19,9 +19,9 @@ To force students to use the school's managed Chrome browser, you can enable Saf
 
 `SAFARI_CONTROL="allow"` Set to 'enforce' to restrict Safari. 
 
-Safari may be blocked via two methods:
--osascript -- This is the most accurate method as it will only alert to open Safari windows.
--pgrep -- If osascript isn't possible due to a TCC restriction and you cannot create a PPPC profile, this is a good alternative. It will have some false positives.
+### Safari may be blocked via two methods
+-osascript: This is the most accurate method as it will only alert to open Safari windows.
+-pgrep:     If osascript isn't possible due to a TCC restriction and you cannot create a PPPC profile, this is a good alternative. It will have some false positives.
 
 ## Delete Login Items
 `LOGIN_ITEM_CONTROL="enforce"`
