@@ -36,7 +36,7 @@ To force students to use the school's managed Chrome browser, you can enable Saf
 Deletes all user added login items. This prevents the students from loading software when the machine boots.
 
 ## Check Daemon
-`sudo launchctl | grep itech` A positive result will show something similar to `-       0       com.itech.btenforce`
+`sudo launchctl | grep itech` A positive result will show something similar to `-  0   com.itech.btenforce`
 
 ## Unload Daemon
 `sudo launchctl unload com.itech.btenforce`
