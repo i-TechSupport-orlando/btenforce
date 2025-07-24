@@ -14,7 +14,7 @@ The features are controlled via `/Library/Application Support/i-Tech/btenforce.e
 `BTENFORCE_START_TIME=07` Start enforcement at 07:00
 `BTENFORCE_STOP_TIME=16`  Stop enforcement at 16:00
 
-### Safari Browser Prevention
+## Safari Browser Prevention
 To force students to use the school's managed Chrome browser, you can enable Safari blocking by changing the config entry to 'enforce'
 
 `SAFARI_CONTROL="allow"` Set to 'enforce' to restrict Safari. 
@@ -23,15 +23,15 @@ Safari may be blocked via two methods:
 -osascript -- This is the most accurate method as it will only alert to open Safari windows.
 -pgrep -- If osascript isn't possible due to a TCC restriction and you cannot create a PPPC profile, this is a good alternative. It will have some false positives.
 
-### Delete Login Items
+## Delete Login Items
 `LOGIN_ITEM_CONTROL="enforce"`
 
 Deletes all user added login items. This prevents the students from loading software when the machine boots.
 
-# Check Daemon
+## Check Daemon
 `sudo launchctl | grep itech`
 
-# Unload Daemon
+## Unload Daemon
 `sudo launchctl unload com.itech.btenforce`
 
 Tested on macOS 13, 14, 15.5
