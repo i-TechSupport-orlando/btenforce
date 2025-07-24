@@ -12,6 +12,7 @@ The features are controlled via `/Library/Application Support/i-Tech/btenforce.e
 `BLUETOOTH_CONTROL="enforce"`  Enable or disable Bluetooth control with "enforce" or "allow"
 
 `BTENFORCE_START_TIME=07` Start enforcement at 07:00
+
 `BTENFORCE_STOP_TIME=16`  Stop enforcement at 16:00
 
 ## Safari Browser Prevention
