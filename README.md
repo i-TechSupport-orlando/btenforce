@@ -6,7 +6,15 @@ A very simple launch daemon runs a script that checks if Bluetooth is turned off
 
 ## Options
 The features are control via `/Library/Application Support/i-Tech/btenforce.env`
- 
+
+`BTENFORCE_ACTIVE="true"`
+Change to 'false' to prevent the app from running completely.
+
+`BLUETOOTH_CONTROL="enforce"`
+Enable or disable Bluetooth control with "enforce" or "allow"
+
+`BTENFORCE_START_TIME=07` Start enforcement at 07:00
+`BTENFORCE_STOP_TIME=16`  Stop enforcement at 16:00
 
 ### Safari Browser Prevention
 To force students to use the school's managed Chrome browser, you can enable Safari blocking by changing the config entry to 'enforce'
@@ -19,7 +27,7 @@ Safari may be blocked via two methods:
 
 
 ### Delete Login Items
-`LOGIN_ITEM_CONTROL="enforce"
+`LOGIN_ITEM_CONTROL="enforce"`
 
 Deletes all user added login items. This prevents the students from loading software when the machine boots.
 
