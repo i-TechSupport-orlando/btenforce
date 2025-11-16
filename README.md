@@ -17,9 +17,9 @@ The features are controlled via `/Library/Application Support/i-Tech/btenforce.e
 
 `BLUETOOTH_CONTROL="enforce"`  Enable or disable Bluetooth control with "enforce" or "allow"
 
-`BTENFORCE_START_TIME=07` Start enforcement at 07:00
+`BTENFORCE_START_TIME=07` Start enforcement at 07:00. Introduced in version 1.5.2.
 
-`BTENFORCE_STOP_TIME=16`  Stop enforcement at 16:00
+`BTENFORCE_STOP_TIME=16`  Stop enforcement at 16:00. Introduced in version 1.5.2.
 
 ## Safari Browser Prevention
 To force students to use the school's managed Chrome browser, you can enable Safari blocking by changing the config entry to 'enforce'
@@ -40,7 +40,6 @@ Deletes all user added login items. This prevents the students from loading soft
 
 ## Unload Daemon
 `sudo launchctl unload com.itech.btenforce`
-
 
 
 
