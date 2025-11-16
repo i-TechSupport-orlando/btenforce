@@ -45,4 +45,4 @@ Deletes all user added login items. This prevents the students from loading soft
 
 
 
-Keith Myers 9/7/2023 | https://www.i-techsupport.com/educational-tech/
+https://www.i-techsupport.com/educational-tech/
