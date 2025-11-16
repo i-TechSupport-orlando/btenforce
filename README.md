@@ -1,5 +1,5 @@
 # btenforce for macOS
-Tested on macOS 13, 14, 15.5
+Tested on macOS 13, 14, 15, and 26
 
 blueutil must be installed first - https://github.com/toy/blueutil. The packaged release of btenforce contains blueutil.
 
