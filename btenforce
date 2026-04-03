@@ -25,27 +25,6 @@
 
 version="1.6"
 
-# Process arguments if there are any.
-if [[ "$#" -ge 1 ]]; then
-    while [[ "$#" -gt 0 ]]; do
-        case $1 in
-            -configure)
-                echo "----- [ Configuration Mode ]-----"
-                configure_btenforce
-                exit 0
-            ;;
-            -debug)
-                BTENFORCE_DEBUG_MODE="true"
-                echo "----- [ Debug Mode ]-----"
-                shift
-            ;;
-            *)
-                echo "Unknown option: $1"
-                shift
-            ;;
-        esac
-    done
-fi
 
 # Application configuration file.
 BTENFORCE_CONFIG="/Library/Application Support/i-Tech/btenforce.env"
@@ -451,6 +430,29 @@ check_login_items () {
             
 
 # ══════════╣ MAIN SCRIPT ╠═══════════
+
+# Process arguments if there are any.
+if [[ "$#" -ge 1 ]]; then
+    while [[ "$#" -gt 0 ]]; do
+        case $1 in
+            -configure)
+                echo "----- [ Configuration Mode ]-----"
+                configure_btenforce
+                exit 0
+            ;;
+            -debug)
+                BTENFORCE_DEBUG_MODE="true"
+                echo "----- [ Debug Mode ]-----"
+                shift
+            ;;
+            *)
+                echo "Unknown option: $1"
+                shift
+            ;;
+        esac
+    done
+fi
+
 prune_logs
 
 # Source the configuration file.
