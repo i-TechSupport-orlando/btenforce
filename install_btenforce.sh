@@ -1,7 +1,7 @@
 #!/bin/zsh
 
 ## ╔═════════════════════════════════════════════════════════════════╗
-## ║         Installs i-Tech BTEnforce Bluetooth Enforcement       	 ║
+## ║         Installs i-Tech btenforce Bluetooth Enforcement       	 ║
 ## ║   Author: Keith Myers, i-Tech | keith.myers@i-techsupport.com   ║
 ## ╚═════════════════════════════════════════════════════════════════╝
 ## 
@@ -12,22 +12,25 @@
 ##
 ## (C) i-Tech Support Inc.
 
+version="1.6"
 
-sw_url="https://github.com/i-TechSupport-orlando/btenforce/releases/download/v1.5/BTEnforce.pkg"
+sw_url="https://github.com/i-TechSupport-orlando/btenforce/releases/download/v${version}/btenforce.pkg"
 tmp_path="/tmp/btenforce"
-out_package="${tmp_path}/BTEnforce.pkg"
+out_package="${tmp_path}/btenforce.pkg"
 
 ## Application bundle.
-app_bundle="/Applications/.i-Tech/BTEnforce.app"
+app_bundle="/Applications/.i-Tech/btenforce.app"
 new_plist="com.itech.btenforce.plist"
 
-## BTEnforce.
+## btenforce.
 plist_source="${app_bundle}/Contents/Resources/${new_plist}"
 plist_dest="/Library/LaunchDaemons/${new_plist}"
+script_source="${app_bundle}/Contents/MacOS/btenforce"
+script_dest="/usr/local/bin/btenforce"
 
 ## Log files.
-log_file="/var/log/BTEnforce.log"
-error_file="/var/log/BTEnforce_error.log"
+log_file="/var/log/btenforce.log"
+error_file="/var/log/btenforce_error.log"
 
 max_tries=3
 
@@ -55,7 +58,7 @@ download_software() {
 		
 		## Ensure the file exists.
 		if [[ -f "$out_package" ]]; then
-			echo "Downloaded BTEnforce successfully."
+			echo "Downloaded btenforce successfully."
 			return 0
 		else
 			echo "Unable to download the software. Retrying..."
@@ -63,7 +66,7 @@ download_software() {
 		fi
 	done
 	
-	echo "Unable to download BTEnforce after ${max_tries} attempts."
+	echo "Unable to download btenforce after ${max_tries} attempts."
 	clean_up
 	exit 1
 }
@@ -103,7 +106,7 @@ install_software () {
 	sleep 2
 		
 	if [[ -e $app_bundle ]]; then
-		echo "Installed BTEnforce by i-Tech successfully. Activating daemon..."
+		echo "Installed btenforce by i-Tech successfully. Activating daemon..."
 		activate_daemon
 	else
 		echo "❌ Could not find ${app_bundle}"
