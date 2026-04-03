@@ -25,7 +25,6 @@
 
 version="1.6"
 
-
 # Application configuration file.
 BTENFORCE_CONFIG="/Library/Application Support/i-Tech/btenforce.env"
 BTENFORCE_LOG_FILE="/var/log/btenforce.log"
@@ -46,9 +45,8 @@ uid=$(id -u "$loggedInUser")
 # Add the date and time stamp to the log file.
 append_log () {
     local message="$1"
-    dt=$( date +"%Y-%m-%d %H:%M:%S" )
-    echo "${dt} btenforce version ${version} -- ${message}" | tee -a "$BTENFORCE_LOG_FILE"
-    logger -is -t btenforce "${message}"
+    full_msg="btenforce version ${version} -- ${message}"
+    logger -is -t btenforce "$full_msg" >> "$BTENFORCE_LOG_FILE"
 }
 
 debug_info() {
@@ -274,13 +272,9 @@ runAsUser() {
 prune_logs () {
     local retention=${1:-180}
     local log_file="${2:-$BTENFORCE_LOG_FILE}"
-    local cutoff
-    
-    cutoff=$(date -v-"${retention}"d +%Y-%m-%d)
-    
     find "$(dirname "$log_file")" \
         -name "$(basename "$log_file")" \
-        -mtime +"$cutoff" \
+        -mtime +"${retention}" \
         -delete
 
     append_log "Pruned logs older than ${retention} days."
@@ -362,7 +356,6 @@ EOF
         if [[ "$safari_is_open" == "true" ]]; then
             killall Safari &> /dev/null
             local msg="Killed Safari PID: ${proc} for ${loggedInUser} via osascript."
-            logger -is -t btenforce "$msg"
             append_log "$msg"
             return 0
         fi
@@ -372,13 +365,11 @@ EOF
         if pgrep -x "Safari" >/dev/null; then
             killall Safari &> /dev/null
             local msg="Killed Safari for ${loggedInUser} via pgrep"
-            logger -is -t btenforce "$msg"
             append_log "$msg"
             return 0
         fi
     else
         append_log "Invalid SAFARI_CONTROL_METHOD in ${BTENFORCE_CONFIG}."
-        logger -is -t btenforce "Invalid SAFARI_CONTROL_METHOD in ${BTENFORCE_CONFIG}."
         return 1
     fi
 }
@@ -409,6 +400,8 @@ during_school_hours () {
             return 0  # true. School in session.
         fi
     fi
+
+    append_log "Not during school hours. Exiting."
     return 1  # false. Night/weekend.
 }
 
@@ -424,7 +417,6 @@ check_login_items () {
         runAsUser osascript -e 'tell application "System Events" to delete login items'
         login_item_status="Removed ${login_item_count} login items for ${loggedInUser}"
         append_log "$login_item_status"
-        logger -is -t btenforce "$login_item_status"
     fi
 }
             
@@ -438,15 +430,15 @@ if [[ "$#" -ge 1 ]]; then
             -configure)
                 echo "----- [ Configuration Mode ]-----"
                 configure_btenforce
-                exit 0
+                shift
             ;;
             -debug)
                 BTENFORCE_DEBUG_MODE="true"
-                echo "----- [ Debug Mode ]-----"
+                append_log "----- [ Debug Mode ]-----"
                 shift
             ;;
             *)
-                echo "Unknown option: $1"
+                append_log "Unknown option: $1"
                 shift
             ;;
         esac
@@ -461,7 +453,6 @@ if [[ -f "$BTENFORCE_CONFIG" ]]; then
 else
     missing_config="ERROR: Unable to find ${BTENFORCE_CONFIG}"
     append_log "$missing_config"
-    logger -is -t btenforce "$missing_config"
     exit 1
 fi
 
