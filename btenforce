@@ -1,14 +1,5 @@
 #!/bin/zsh
 
-## ╔══════════════════════════════════════════════════════════════════╗
-## ║  App Bundle Script for KillSafari, btenforce, and remloginItems  ║
-## ║    Author: Keith Myers, i-Tech | keith.myers@i-techsupport.com   ║
-## ╚══════════════════════════════════════════════════════════════════╝
-##
-## This software is intended to run by schools to gain control over students'
-## school-owned devices when it comes to Bluetooth, running Safari, and adding
-## invalid or inappropriate applications to the automatic login items.
-##
 ## Unified log entries can be retrieved with: 
 ##    log show --predicate 'eventMessage contains "Reactivated BT"' --info --debug
 ##    log show --predicate 'eventMessage contains "Killed Safari for"' --info --debug
@@ -22,20 +13,23 @@
 ##            - Added configuration mode to make it easy to configure/reconfigure. 
 ##            - Added full time options instead of hour only.
 ##            - Renamed the application to btenforce (lowercase).
+##   4/6/2026 - Added time constraint override option.
+##            - Added ability to run as a daemon.
+##            - Added ability to run as a login item.
+##            - Added ability to run as a login item.
+##
+## Author: Keith Myers | keith.myers@i-techsupport.com
 
 version="1.6"
 
 # Application configuration file.
 BTENFORCE_CONFIG="/Library/Application Support/i-Tech/btenforce.env"
 BTENFORCE_LOG_FILE="/var/log/btenforce.log"
-TODAY=$(date +%Y-%m-%d)
-
-# Enable error trapping to log the line number and command that caused the error.
-trap 'echo "❌ Error on line $LINENO: $(sed -n ${LINENO}p "$0")" >> "$BTENFORCE_LOG_FILE"' ERR
+TODAY=$( date +%Y-%m-%d )
 
 # Location of AppBundle files.
-APP_BUNDLE_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
-PLIST_SOURCE="$APP_BUNDLE_DIR/Contents/Resources/com.itech.btenforce.plist"
+APP_BUNDLE_DIR="/Applications/.i-Tech/btenforce.app"
+PLIST_SOURCE="${APP_BUNDLE_DIR}/Contents/Resources/com.itech.btenforce.plist"
 PLIST_DEST="/Library/LaunchDaemons/com.itech.btenforce.plist"
 
 # Username of the user currently logged on and their ID.
@@ -139,6 +133,19 @@ configure_btenforce() {
 
     echo "-------------------------------"
 
+    # Override time constraints. 'No' means student control enabled on nights/weekends.
+    read -k 1 "TIME_CONSTRAINT_OVERRIDE?Enable time constraint override? (Y/N): "
+    if [[ "$TIME_CONSTRAINT_OVERRIDE" == "Y" || "$TIME_CONSTRAINT_OVERRIDE" == "y" ]]; then
+        TIME_CONSTRAINT_OVERRIDE="true"
+        echo -e "\n${YELLOW}Time constraint override is enabled.${NC}"
+    else
+        TIME_CONSTRAINT_OVERRIDE="false"
+        echo -e "\n${GREEN}Time constraint override is disabled.${NC}"
+    fi
+
+    echo "-------------------------------"
+
+
     read "BTENFORCE_DOMAIN?Enter your fully qualified domain name: "
     fqdn_regex='^([a-zA-Z0-9-]{1,63}\.)+[a-zA-Z]{2,}$'
     if [[ $BTENFORCE_DOMAIN =~ $fqdn_regex ]]; then
@@ -172,7 +179,7 @@ configure_btenforce() {
     echo "-------------------------------"
 
     # School start time in 24-hour clock. Hour only.
-    read -k 5 "BTENFORCE_START_TIME?Enter school start time (two digits as in 07:00): "
+    read -k 5 "BTENFORCE_START_TIME?Enter school start time (5 characters as in 07:00): "
 
     time_regex='^([01][0-9]|2[0-3]):[0-5][0-9]$'
     if [[ $BTENFORCE_START_TIME =~ $time_regex ]]; then
@@ -185,7 +192,7 @@ configure_btenforce() {
     echo "-------------------------------"  
 
     # School stop time in 24-hour clock. Hour only.
-    read -k 5 "BTENFORCE_STOP_TIME?Enter school stop time (two digits as in 15:00): "
+    read -k 5 "BTENFORCE_STOP_TIME?Enter school stop time (5 characters as in 15:00): "
 
     if [[ $BTENFORCE_STOP_TIME =~ $time_regex ]]; then
         echo -e "\n${GREEN}School stop time is set to ${BTENFORCE_STOP_TIME}.${NC}"
@@ -243,6 +250,9 @@ BTENFORCE_STOP_TIME="$BTENFORCE_STOP_TIME"
 
 # Log file path.
 BTENFORCE_LOG_FILE="$BTENFORCE_LOG_FILE"
+
+# Time constraint override.
+TIME_CONSTRAINT_OVERRIDE="$TIME_CONSTRAINT_OVERRIDE"
 EOF
     else
         echo -e "\n${RED}$failed_items items are not set. Config file not created.${NC}"
@@ -286,47 +296,62 @@ install_daemon () {
         cp "$PLIST_SOURCE" "$PLIST_DEST"
         chown root:wheel "$PLIST_DEST"
         chmod 644 "$PLIST_DEST"
-        launchctl load "$PLIST_DEST"
-        append_log "LaunchDaemon installed and loaded."
+
+        daemon_status=$( launchctl list | grep "com.itech.btenforce" || true )
+
+        # Already running. Unload and reload.
+        if [[ -n "$daemon_status" ]]; then
+            launchctl unload "$PLIST_DEST"
+            sleep 1
+            launchctl bootstrap system "$PLIST_DEST"
+            sleep 1
+            daemon_status=$( launchctl list | grep "com.itech.btenforce" || true )
+            if [[ -n "$daemon_status" ]]; then
+                append_log "LaunchDaemon installed and reloaded."
+                return 0
+            else
+                append_log "The daemon failed to reload."
+                return 1
+            fi
+        else
+            append_log "Installing new LaunchDaemon..."
+
+            launchctl bootstrap system "$PLIST_DEST"
+
+            sleep 1
+
+            daemon_status=$( launchctl list | grep "com.itech.btenforce" || true )
+
+            if [[ -n "$daemon_status" ]]; then
+                append_log "LaunchDaemon installed and loaded."
+                return 0
+            else
+                append_log "The daemon failed to start."
+                return 1
+            fi
+        fi
+
     fi
 }
 
 # Check whether Bluetooth is on or off.
 check_bluetooth () {
     btutil="/usr/local/bin/blueutil"
-    local source="${APP_BUNDLE_DIR}/Contents/MacOS/blueutil"
-    
-    # Check if blueutil exists and is executable.
-    if [[ ! -x "$btutil" ]]; then
-        # If not, copy it from the App Bundle to /usr/local/bin.
-        if [[ -f "$source" ]]; then
-            cp "$source" "$btutil"
-            chmod 755 "$btutil"
-            chown root:wheel "$btutil"
-            chmod +x "$btutil"
-            append_log "Copied blueutil to ${btutil}"
-            xattr -dr com.apple.quarantine "$btutil"
-        else
-            append_log "Error: Could not find the Bluetooth utility at ${source}. Exiting without action."
-            return 1
-        fi
         
-        # Double check that blueutil is executable.
-        if [[ ! -x "$btutil" ]]; then
-            append_log "Error: Could not find the Bluetooth utility or it's not executable. Exiting without action."
-            return 1
-        fi
+    # Double check that blueutil is executable.
+    if [[ ! -x "$btutil" ]]; then
+        append_log "Error: Could not find the Bluetooth utility or it's not executable. Exiting without action."
+        return 1
     fi
     
     # Required to run as root.
     export BLUEUTIL_ALLOW_ROOT=1
     
-    # Get the status of the Bluetooth adapter.
-    bstatus=$("$btutil" | head -n 1 | awk -F':' '{print $NF}')
+    bstatus=$( runAsUser /usr/local/bin/blueutil -p )
     
     # If Bluetooth is off, turn it back on.
     if [[ "$bstatus" -eq 0 ]]; then
-        "$btutil" --power 1
+        runAsUser /usr/local/bin/blueutil --power 1
         local msg="Reactivated Bluetooth. User: ${loggedInUser}"
         append_log "$msg"
     fi
@@ -337,7 +362,7 @@ check_safari () {
     
     if [[ "$SAFARI_CONTROL_METHOD" == "osascript" ]]; then
     
-        safari_is_open=$( osascript <<EOF
+        safari_is_open=$( runAsUser osascript -e '
 tell application "System Events"
 set safariRunning to (name of processes) contains "Safari"
 end tell
@@ -351,8 +376,7 @@ if safariRunning then
 end if
 
 return "false"
-EOF
-)
+' 2>/dev/null )
         if [[ "$safari_is_open" == "true" ]]; then
             killall Safari &> /dev/null
             local msg="Killed Safari PID: ${proc} for ${loggedInUser} via osascript."
@@ -377,6 +401,11 @@ EOF
 # Check whether the current date/time is during regular school hours.
 during_school_hours () {
     
+    if [[ "$BTENFORCE_DEBUG_MODE" == "true" || "$TIME_CONSTRAINT_OVERRIDE" == "true" ]]; then
+        append_log "During school hours - debug mode or time constraint override."
+        return 0
+    fi
+
     # Get current time
     current_hour=$(date +%H)
     current_minute=$(date +%M)

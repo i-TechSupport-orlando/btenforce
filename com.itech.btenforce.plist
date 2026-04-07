@@ -6,10 +6,15 @@
 	<string>com.itech.btenforce</string>
 	<key>ProgramArguments</key>
 	<array>
-		<string>sh</string>
-		<string>/usr/local/bin/btenforce.sh</string>
+		<string>/usr/local/bin/btenforce</string>
 	</array>
+	<key>RunAtLoad</key>
+	<true/>
 	<key>StartInterval</key>
-	<integer>10</integer>
+	<integer>5</integer>
+	<key>StandardErrorPath</key>
+	<string>/var/log/btenforce.log</string>
+	<key>StandardOutPath</key>
+	<string>/var/log/btenforce.log</string>
 </dict>
 </plist>
