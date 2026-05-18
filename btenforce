@@ -16,11 +16,52 @@
 ##   4/6/2026 - Added time constraint override option.
 ##            - Added ability to run as a daemon.
 ##            - Added ability to run as a login item.
-##            - Added ability to run as a login item.
+##  5/15/2026 - Version 2.1: 
+##            - Removed ANSI color coding from log messages.
+##            - Added logging to configuration function.
+##            - Added comment indicating that the script is running as a standard user.
+##            - Prevents reconfiguring by standard users.
+##            - Cleaned up redundant login check.
+##            - Added log retention period to the configuration options.
+##            - Added function to append missing configuration variables to the config file.
+##            - Added comprehensive configuration variable validation in post-install script.
+##            - Corrected the installation function to check for the source files before copying them.
+##            - Replaced deprecated launchctl unload/bootstrap with bootout/bootstrap.
+##            - Added version to blueutil on install/update for logging.
+##            - Added check for blueutil and then copy it from /usr/local/share/btenforce/blueutil if not found in /usr/local/bin.
+##            - Added MDM_TYPE variable for clarity in config file.
+##            - Added version to the log header in the config file for easy identification.
+##            - Refined configuration function for usability and convenience. It will
+##              now check for configuration errors in the config file and report
+##              them to the user.
+##            - Added parameters to postinstall script for Jamf Pro MDM and 
+##              Mosyle MDM. See the notes in the postinstall script for more
+##              information.
+##            - Enhanced time entry and validation for the configuration 
+##              function.
+##            - Added warning when configuring Safari function with osascript
+##              method on macOS.
+##            - Added the method used to configure btenforce to the config file along with the time and date of the configuration.
+##            - Reduced unessential noise from logs.
+##            - Added check for BTENFORCE_ACTIVE in config file and exit if not found.
+##            - Added i-Tech banner with support info.
+##            - Changed logic to continue if no user is logged on, then skip the controls and log the exit code.
+##            - Added trap for INT and TERM signals to log the exit code and exit.
 ##
+## Repository: https://github.com/i-TechSupport-orlando/btenforce
 ## Author: Keith Myers | keith.myers@i-techsupport.com
+##
+## Since this script is called repeatedly, the config file formatting is extremely
+## strict to prevent errors. Each variable is on its own line and is in the format
+## VARIABLE="value".
+## 
+## This script is designed to be run as a daemon and is written in zsh.
+## It must be run as root.
 
-version="1.6"
+VERSION="2.1"
+SCRIPT_PATH="${0:A}"
+EXIT_CODE="0"
+ACTIVE_USER="false"
 
 # Application configuration file.
 BTENFORCE_CONFIG="/Library/Application Support/i-Tech/btenforce.env"
@@ -34,195 +75,414 @@ PLIST_DEST="/Library/LaunchDaemons/com.itech.btenforce.plist"
 
 # Username of the user currently logged on and their ID.
 loggedInUser=$( echo "show State:/Users/ConsoleUser" | scutil | awk '/Name :/ && ! /loginwindow/ { print $3 }' )
-uid=$(id -u "$loggedInUser")
+if [[ -z "$loggedInUser" ]]; then
+	# Exit if no user is logged in. btenforce is user-facing.
+	append_log "No user logged in."
+	EXIT_CODE=1
+else
+	ACTIVE_USER="true"
+fi
 
-# Add the date and time stamp to the log file.
+# Get the user ID of the logged-in user.
+uid=$( id -u "${loggedInUser}" )
+
+# If no user ID is found for the logged in user, log and change exit code.
+if [[ -z "$uid" ]]; then
+	append_log "No user ID found for user ${loggedInUser}. Exiting."
+	EXIT_CODE=1
+fi
+
+## Add the date and time stamp to the log file.
 append_log () {
     local message="$1"
-    full_msg="btenforce version ${version} -- ${message}"
-    logger -is -t btenforce "$full_msg" >> "$BTENFORCE_LOG_FILE"
+    
+    # Strip ANSI color codes AND leading newlines for the log files.
+    # The sed pipeline removes ANSI escape sequences and deletes the first line if it is empty.
+    local clean_text="$( echo -e "$message" | sed 's/\x1b\[[0-9;]*m//g' | sed '1{/^$/d;}' )"
+    
+    local date_stamp="$( date +"%Y-%m-%d %H:%M:%S" )"
+    local file_log_msg="${date_stamp} -- ${clean_text}"
+    local syslog_msg="version ${VERSION} -- ${clean_text}"
+
+    # If stdout is a terminal (interactive session), keep the colors.
+    if [[ -t 1 ]]; then
+        # Echo the message with the ANSI color codes to the terminal.
+        echo -e "$message"
+    fi
+
+    # Append clean message to the persistent log file
+    echo "$file_log_msg" >> "$BTENFORCE_LOG_FILE"
+    
+    # Log to syslog without echoing to stderr again
+    logger -i -t btenforce "$syslog_msg"
 }
 
+# Function to display debug information.
 debug_info() {
-    echo "BTENFORCE_CONFIG:      ${BTENFORCE_CONFIG}"
-    echo "BTENFORCE_LOG_FILE:    ${BTENFORCE_LOG_FILE}"
-    echo "BTENFORCE_ACTIVE:      ${BTENFORCE_ACTIVE}"
-    echo "TODAY:                 ${TODAY}"
-    echo "APP_BUNDLE_DIR:        ${APP_BUNDLE_DIR}"
-    echo "PLIST_SOURCE:          ${PLIST_SOURCE}"
-    echo "PLIST_DEST:            ${PLIST_DEST}"
-    echo "BLUEUTIL_ALLOW_ROOT:   ${BLUEUTIL_ALLOW_ROOT}"
-    echo "SAFARI_CONTROL:        ${SAFARI_CONTROL}"
-    echo "SAFARI_CONTROL_METHOD: ${SAFARI_CONTROL_METHOD}"
-    echo "loggedInUser:          ${loggedInUser}"
-    echo "User ID:               ${uid}"
+    append_log "BTENFORCE_CONFIG:         ${BTENFORCE_CONFIG}"
+    append_log "BTENFORCE_LOG_FILE:       ${BTENFORCE_LOG_FILE}"
+    append_log "BTENFORCE_ACTIVE:         ${BTENFORCE_ACTIVE}"
+    append_log "TODAY:                    ${TODAY}"
+    append_log "APP_BUNDLE_DIR:           ${APP_BUNDLE_DIR}"
+    append_log "PLIST_SOURCE:             ${PLIST_SOURCE}"
+    append_log "PLIST_DEST:               ${PLIST_DEST}"
+    append_log "BLUEUTIL_ALLOW_ROOT:      ${BLUEUTIL_ALLOW_ROOT}"
+    append_log "SAFARI_CONTROL:           ${SAFARI_CONTROL}"
+    append_log "SAFARI_CONTROL_METHOD:    ${SAFARI_CONTROL_METHOD}"
+    append_log "loggedInUser:             ${loggedInUser}"
+    append_log "User ID:                  ${uid}"
+    append_log "TIME_CONSTRAINT_OVERRIDE: ${TIME_CONSTRAINT_OVERRIDE}"
 }
 
+# Function to validate that a time value is formatted correctly. 24-hour clock.
+check_time_integer() {
+    local time="$1"
+    local time_regex='^([0-9]|0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$'
+
+    if [[ ! "$time" =~ $time_regex ]]; then
+        return 1
+	fi
+
+	# Split the string on the colon character into an array.
+	local time_array=(${(s/:/)time})
+
+	local hour="${time_array[1]}"
+	local minute="${time_array[2]}"
+
+	# Using 10# forces base-10 evaluation, avoiding octal errors with 08 or 09.
+	if (( 10#$hour >= 0 && 10#$hour <= 23 )) && (( 10#$minute >= 0 && 10#$minute <= 59 )); then
+		return 0
+	fi
+    return 1
+}
+
+add_leading_zero() {
+    local time="$1"
+	local time_array=(${(s/:/)time})
+	local hour="${time_array[1]}"
+	local minute="${time_array[2]}"
+
+	# Strip any existing leading zeros to avoid double padding
+	hour="${hour#"${hour%%[!0]*}"}"
+	minute="${minute#"${minute%%[!0]*}"}"
+	
+	# If they were entirely zeros (e.g. "00"), they become empty. Default to 0.
+	hour="${hour:-0}"
+	minute="${minute:-0}"
+
+	printf "%02d:%02d\n" "$hour" "$minute"
+}
+
+
+# Configuration function. Called with -configure argument.
 configure_btenforce() {
     failed_items=0
-    YELLOW="\033[1;33m"
-    GREEN="\033[0;32m"
-    BLUE="\033[1;34m"
-    RED="\033[0;31m"
-    NC="\033[0m" # No color
+    YELLOW=$'\033[1;33m'
+    GREEN=$'\033[0;32m'
+    BLUE=$'\033[1;34m'
+    RED=$'\033[0;31m'
+    ORANGE=$'\033[38;2;255;165;0m'
+    NC=$'\033[0m' # No color
 
     clear
+    local total_options=11
+    local option_number=0
+
+    TERM=xterm-256color
+
+    echo -e " ╔═════════════════════════════╗ "
+    echo -e " ║   btenforce Config Builder  ║ "
+    echo -e " ║ ${ORANGE} _     _____         _      ${NC}║ "
+    echo -e " ║ ${ORANGE}(_)   |_   _|__  ___| |___  ${NC}║ "
+    echo -e " ║ ${ORANGE}| |_____| |/ _ \/ __| '_  \ ${NC}║ "
+    echo -e " ║ ${ORANGE}| |_____| |  __/ (__| | | | ${NC}║ "
+    echo -e " ║ ${ORANGE}|_|     |_|\___|\___|_| |_| ${NC}║ "
+    echo -e " ║                             ║ "
+    echo -e " ║ ▶︎ https://i-techsupport.com ║ "
+    echo -e " ║ ☎ (407) 265-2000 option: #1 ║ "
+    echo -e " ║ ✉ support@i-techsupport.com ║ "
+    echo -e " ║ Author: Keith Myers, i-Tech ║ "
+    echo -e " ║ (C) 2026 i-Tech Support Inc ║ "
+    echo -e " ╚═════════════════════════════╝ "
+    echo ""
 
     if (( EUID != 0 )); then
-        echo -e "\n${RED}Error: This script must be run with sudo or as root.${NC}\n" >&2
+        append_log "\n${RED}Error: This script must be run with sudo or as root.${NC}\n" >&2
         exit 1
     fi
 
-    # Enable/disable the daemon as a whole with 'true' or 'false'
-    read -k 1 "BTENFORCE_ACTIVE?Enable btenforce? (Y/N): "
+    echo -e "\nPlease note that this utility changes the configuration of btenforce on"
+    echo -e "${ORANGE}this computer only${NC}. To change the config on multiple computers, use the"
+    echo -e "post-install script: btenforce-postinstall.sh using an MDM.\n"
 
-    if [[ "$BTENFORCE_ACTIVE" == "Y" || "$BTENFORCE_ACTIVE" == "y" ]]; then
-        BTENFORCE_ACTIVE="true"
-        echo -e "\n${GREEN}btenforce is enabled.${NC}"
-    else
-        BTENFORCE_ACTIVE="false"
-        echo -e "\n${RED}btenforce is disabled.${NC}"
-    fi
+    echo -e "Press ENTER for the default value shown in square brackets or make a selection:\n"
 
-    echo "-------------------------------"
-
-    # Safari option. 'enforce' or 'allow'
-    read -k 1 "SAFARI_CONTROL?Enable Safari control? (Y/N): "
-
-    if [[ -z "$SAFARI_CONTROL" ]]; then
-        echo -e "\n${RED}Safari control is not set.${NC}"
-        failed_items=$((failed_items + 1))
-    elif [[ "$SAFARI_CONTROL" == "Y" || "$SAFARI_CONTROL" == "y" ]]; then
-        SAFARI_CONTROL="enforce"
-        echo -e "\n${GREEN}Safari control is enabled.${NC}"
-    else
-        SAFARI_CONTROL="allow"
-        echo -e "\n${RED}Safari control is disabled.${NC}"
-    fi
-
-    echo "-------------------------------"
-
-    # Bluetooth option. 'enforce' or 'allow'
-    read -k 1 "BLUETOOTH_CONTROL?Enable Bluetooth control? (Y/N): "
-
-    if [[ -z "$BLUETOOTH_CONTROL" ]]; then
-        echo -e "\n${RED}Bluetooth control is not set.${NC}"
-        failed_items=$((failed_items + 1))
-    elif [[ "$BLUETOOTH_CONTROL" == "Y" || "$BLUETOOTH_CONTROL" == "y" ]]; then
-        BLUETOOTH_CONTROL="enforce"
-        echo -e "\n${GREEN}Bluetooth control is enabled.${NC}"
-    else
-        BLUETOOTH_CONTROL="allow"
-        echo -e "\n${RED}Bluetooth control is disabled.${NC}"
-    fi
-
-    echo "-------------------------------"
-
-    # Login item controls. 'enforce' or 'allow'
-    read -k 1 "LOGIN_ITEM_CONTROL?Enable login item control? (Y/N): "
-
-    if [[ -z "$LOGIN_ITEM_CONTROL" ]]; then
-        echo -e "\n${RED}Login item control is not set.${NC}"
-        failed_items=$((failed_items + 1))
-    elif [[ "$LOGIN_ITEM_CONTROL" == "Y" || "$LOGIN_ITEM_CONTROL" == "y" ]]; then
-        LOGIN_ITEM_CONTROL="enforce"
-        echo -e "\n${GREEN}Login item control is enabled.${NC}"
-    else
-        echo -e "\n${RED}Login item control is disabled.${NC}"
-    fi
-
-    echo "-------------------------------"
-
-    # Override time constraints. 'No' means student control enabled on nights/weekends.
-    read -k 1 "TIME_CONSTRAINT_OVERRIDE?Enable time constraint override? (Y/N): "
-    if [[ "$TIME_CONSTRAINT_OVERRIDE" == "Y" || "$TIME_CONSTRAINT_OVERRIDE" == "y" ]]; then
-        TIME_CONSTRAINT_OVERRIDE="true"
-        echo -e "\n${YELLOW}Time constraint override is enabled.${NC}"
-    else
-        TIME_CONSTRAINT_OVERRIDE="false"
-        echo -e "\n${GREEN}Time constraint override is disabled.${NC}"
-    fi
-
-    echo "-------------------------------"
-
-
-    read "BTENFORCE_DOMAIN?Enter your fully qualified domain name: "
-    fqdn_regex='^([a-zA-Z0-9-]{1,63}\.)+[a-zA-Z]{2,}$'
-    if [[ $BTENFORCE_DOMAIN =~ $fqdn_regex ]]; then
-        if [[ "$BTENFORCE_DOMAIN" == *"yourdomain"* ]]; then
-            echo -e "\n${RED}FQDN is not set. ${BTENFORCE_DOMAIN} is not a valid domain.${NC}"
-            failed_items=$((failed_items + 1))
+    ((option_number++))
+    # Enable/disable the daemon as a whole.
+    if read -s -k 1 -t 600 "BTENFORCE_ACTIVE?[${option_number}/${total_options}] Enable btenforce? ([${ORANGE}Y${NC}]/N): "; then
+        if [[ -z "$BTENFORCE_ACTIVE" ]]; then
+            append_log "\n${GREEN}Defaulting to enable. btenforce is enabled.${NC}"
+            BTENFORCE_ACTIVE="true"
+        elif [[ "$BTENFORCE_ACTIVE" == "Y" || "$BTENFORCE_ACTIVE" == "y" ]]; then
+            BTENFORCE_ACTIVE="true"
+            append_log "\n${GREEN}btenforce is enabled.${NC}"
+        elif [[ "$BTENFORCE_ACTIVE" == "N" || "$BTENFORCE_ACTIVE" == "n" ]]; then
+            BTENFORCE_ACTIVE="false"
+            append_log "\n${RED}btenforce is disabled completely.${NC}"
         else
-            echo -e "\n${GREEN}FQDN is set to ${BTENFORCE_DOMAIN}.${NC}"
+            append_log "\n${GREEN}Defaulting to enable. btenforce is enabled.${NC}"
+            BTENFORCE_ACTIVE="true"
         fi
     else
-        echo -e "\n${RED}FQDN is not set.${NC}"
-        failed_items=$((failed_items + 1))
+        append_log "\n${GREEN}Defaulting to enable. btenforce is enabled.${NC}"
+        BTENFORCE_ACTIVE="true"
+    fi
+
+
+    echo "-------------------------------"
+    ((option_number++))
+    # Safari option. 'enforce' or 'allow'
+    if read -s -k 1 -t 600 "SAFARI_CONTROL?[${option_number}/${total_options}] Enforce Safari restrictions? (force students to use Chrome, for example) (Y/[${ORANGE}N${NC}]): "; then
+        if [[ -z "$SAFARI_CONTROL" ]]; then
+            append_log "\n${GREEN}Defaulting to allow. Safari restrictions are not enabled.${NC}"
+            SAFARI_CONTROL="allow"
+        elif [[ "$SAFARI_CONTROL" == "Y" || "$SAFARI_CONTROL" == "y" ]]; then
+            SAFARI_CONTROL="enforce"
+            append_log "\n${GREEN}Safari restrictions are enabled.${NC}"
+        else
+            SAFARI_CONTROL="allow"
+            append_log "\n${GREEN}Safari restrictions are disabled.${NC}"
+        fi
+    else
+        append_log "\n${GREEN}Defaulting to allow. Safari restrictions are not enabled.${NC}"
+        SAFARI_CONTROL="allow"
     fi
 
     echo "-------------------------------"
 
+    ((option_number++))
+    # Bluetooth option. 'enforce' or 'allow'
+    if read -s -k 1 -t 600 "BLUETOOTH_CONTROL?[${option_number}/${total_options}] Enforce Bluetooth restrictions? (students will not be able to turn off Bluetooth) (Y/[${ORANGE}N${NC}]): "; then
+        if [[ -z "$BLUETOOTH_CONTROL" ]]; then
+            append_log "\n${GREEN}Defaulting to allow. Bluetooth enforcement is not restricted.${NC}"
+            BLUETOOTH_CONTROL="allow"
+        elif [[ "$BLUETOOTH_CONTROL" == "Y" || "$BLUETOOTH_CONTROL" == "y" ]]; then
+            BLUETOOTH_CONTROL="enforce"
+            append_log "\n${GREEN}Bluetooth enforcement is enabled.${NC}"
+        else
+            BLUETOOTH_CONTROL="allow"
+            append_log "\n${GREEN}Defaulting to allow. Bluetooth control is not restricted.${NC}"
+        fi
+    else
+        append_log "\n${GREEN}Defaulting to allow. Bluetooth control is not restricted.${NC}"
+        BLUETOOTH_CONTROL="allow"
+    fi
+
+    echo "-------------------------------"
+
+    ((option_number++))
+    # Login item controls. 'enforce' or 'allow'
+    if read -s -k 1 -t 600 "LOGIN_ITEM_CONTROL?[${option_number}/${total_options}] Enforce login item controls? (restrict students from adding or removing login items) (Y/[${ORANGE}N${NC}]): "; then
+        if [[ -z "$LOGIN_ITEM_CONTROL" ]]; then
+            LOGIN_ITEM_CONTROL="allow"
+            append_log "\n${GREEN}Defaulting to allow. Student login item control is not restricted.${NC}"
+        elif [[ "$LOGIN_ITEM_CONTROL" == "Y" || "$LOGIN_ITEM_CONTROL" == "y" ]]; then
+            LOGIN_ITEM_CONTROL="enforce"
+            append_log "\n${GREEN}Student login item control is restricted.${NC}"
+        else
+            LOGIN_ITEM_CONTROL="allow"
+            append_log "\n${GREEN}Defaulting to allow. Student login item control is not restricted.${NC}"
+        fi
+    else
+        append_log "\n${GREEN}Defaulting to allow. Student login item control is not restricted.${NC}"
+        LOGIN_ITEM_CONTROL="allow"
+    fi
+
+    echo "-------------------------------"
+
+    ((option_number++))
+    # Override time constraints. 'No' means student control enabled on nights/weekends.
+    if read -s -k 1 -t 600 "TIME_CONSTRAINT_OVERRIDE?[${option_number}/${total_options}] Override the time constraints and enforce btenforce options 24x7? (Y/[${ORANGE}N${NC}]): "; then
+        if [[ -z "$TIME_CONSTRAINT_OVERRIDE" ]]; then
+            TIME_CONSTRAINT_OVERRIDE="false"
+            append_log "\n${GREEN}Default constraint override is disabled. Student control enabled on nights and weekends.${NC}"
+        elif [[ "$TIME_CONSTRAINT_OVERRIDE" == "Y" || "$TIME_CONSTRAINT_OVERRIDE" == "y" ]]; then
+            TIME_CONSTRAINT_OVERRIDE="true"
+            append_log "\n${GREEN}Time constraint override is enabled. 24x7 enforcement.${NC}"
+        else
+            TIME_CONSTRAINT_OVERRIDE="false"
+            append_log "\n${GREEN}Time constraint override is disabled. Student control enabled on nights and weekends.${NC}"
+        fi
+    else
+        TIME_CONSTRAINT_OVERRIDE="false"
+        append_log "\n${GREEN}Default applied. Time constraint override is disabled.${NC}"
+    fi
+
+    echo "-------------------------------"
+
+    ((option_number++))
+    # Organization's fully qualified domain name (FQDN).
+    # Not used in this version, but will be in a future version.
+    fqdn_regex='^([a-zA-Z0-9-]{1,63}\.)+[a-zA-Z]{2,}$'
+    if read -t 600 "BTENFORCE_DOMAIN?[${option_number}/${total_options}] Enter your organization's fully qualified domain name ([${ORANGE}ENTER${NC}] to skip): "; then
+        if [[ -z $BTENFORCE_DOMAIN ]]; then
+            BTENFORCE_DOMAIN=""
+            append_log "${YELLOW}Skipping FQDN entry.${NC}"
+        elif [[ $BTENFORCE_DOMAIN =~ $fqdn_regex ]]; then
+            if [[ "$BTENFORCE_DOMAIN" == *"yourdomain"* ]]; then
+                append_log "${GREEN}Using default FQDN of ${BTENFORCE_DOMAIN}.${NC}"
+            else
+                append_log "${GREEN}Using FQDN of ${BTENFORCE_DOMAIN}.${NC}"
+            fi
+        else
+            append_log "${YELLOW}Invalid value entered: ${BTENFORCE_DOMAIN} Skipping FQDN entry.${NC}"
+            BTENFORCE_DOMAIN=""
+        fi
+    else
+        append_log "${GREEN}Skipping FQDN entry.${NC}"
+        BTENFORCE_DOMAIN=""
+    fi
+
+    echo "-------------------------------"
+
+    ((option_number++))
     # Safari blocking option. 'osascript', 'pgrep'
-    read -k 1 "SAFARI_CONTROL_METHOD?Enter Safari blocking method: ([O]sascript/[P]grep): "
-
-    if [[ -z "$SAFARI_CONTROL_METHOD" ]]; then
-        echo -e "\n${RED}Safari blocking method is not set.${NC}"
-        failed_items=$((failed_items + 1))
-    elif [[ "$SAFARI_CONTROL_METHOD" == "O" || "$SAFARI_CONTROL_METHOD" == "o" ]]; then
-        SAFARI_CONTROL_METHOD="osascript"
-        echo -e "\n${GREEN}Safari blocking method is osascript.${NC}"
+    if read -s -k 1 -t 600 "SAFARI_CONTROL_METHOD?[${option_number}/${total_options}] Enter Safari blocking method: (Osascript/[${ORANGE}P${NC}]grep): "; then
+        if [[ -z "$SAFARI_CONTROL_METHOD" ]]; then
+            append_log "\n${GREEN}Default Safari blocking method is pgrep.${NC}"
+        elif [[ "$SAFARI_CONTROL_METHOD" == "O" || "$SAFARI_CONTROL_METHOD" == "o" ]]; then
+            SAFARI_CONTROL_METHOD="osascript"
+            append_log "\n${GREEN}Safari blocking method is osascript.${NC}"
+            append_log "\n${ORANGE}osascript may require a configuration profile to set the permissions. Use pgrep method instead if students are prompted for permissions.${NC}"
+        else
+            SAFARI_CONTROL_METHOD="pgrep"
+            append_log "\n${GREEN}Safari blocking method is pgrep.${NC}"
+        fi
     else
+        append_log "\n${GREEN}Default Safari blocking method is pgrep.${NC}"
         SAFARI_CONTROL_METHOD="pgrep"
-        echo -e "\n${GREEN}Safari blocking method is pgrep.${NC}"
     fi
 
     echo "-------------------------------"
 
+    ((option_number++))
     # School start time in 24-hour clock. Hour only.
-    read -k 5 "BTENFORCE_START_TIME?Enter school start time (5 characters as in 07:00): "
+    if read -t 600 "BTENFORCE_START_TIME?[${option_number}/${total_options}] Enter school start time (5 characters as in 07:00 or press ENTER for [${ORANGE}07:00${NC}]): "; then
+        if [[ -z "$BTENFORCE_START_TIME" ]]; then
+            append_log "${GREEN}Using default school start time of 07:00.${NC}"
+            BTENFORCE_START_TIME="07:00"
+        else
 
-    time_regex='^([01][0-9]|2[0-3]):[0-5][0-9]$'
-    if [[ $BTENFORCE_START_TIME =~ $time_regex ]]; then
-        echo -e "\n${GREEN}School start time is set to ${BTENFORCE_START_TIME}.${NC}"
+            # Double check that the time is a valid time.
+            BTENFORCE_START_TIME=$( add_leading_zero "$BTENFORCE_START_TIME" )
+            if check_time_integer "$BTENFORCE_START_TIME"; then
+                append_log "${GREEN}School start time is set to ${BTENFORCE_START_TIME}.${NC}"
+            else
+                append_log "${RED}Invalid value entered: ${BTENFORCE_START_TIME} - Defaulting to 07:00.${NC}"
+                BTENFORCE_START_TIME="07:00"
+            fi
+        fi
     else
-        echo -e "\n${RED}School start time is not set.${NC}"
-        failed_items=$((failed_items + 1))
+        append_log "${GREEN}Default school start time is 07:00.${NC}"
+        BTENFORCE_START_TIME="07:00"
     fi
 
     echo "-------------------------------"  
 
+    ((option_number++))
     # School stop time in 24-hour clock. Hour only.
-    read -k 5 "BTENFORCE_STOP_TIME?Enter school stop time (5 characters as in 15:00): "
-
-    if [[ $BTENFORCE_STOP_TIME =~ $time_regex ]]; then
-        echo -e "\n${GREEN}School stop time is set to ${BTENFORCE_STOP_TIME}.${NC}"
+    if read -t 600 "BTENFORCE_STOP_TIME?[${option_number}/${total_options}] Enter school stop time (5 characters as in 15:00 or press ENTER for [${ORANGE}15:00${NC}]): "; then
+        if [[ -z "$BTENFORCE_STOP_TIME" ]]; then
+            append_log "${GREEN}Using default school stop time of 15:00.${NC}"
+            BTENFORCE_STOP_TIME="15:00"
+        else
+            # Double check that the time is a valid time.
+            BTENFORCE_STOP_TIME=$( add_leading_zero "$BTENFORCE_STOP_TIME" )
+            if check_time_integer "$BTENFORCE_STOP_TIME"; then
+                append_log "${GREEN}School stop time is set to ${BTENFORCE_STOP_TIME}.${NC}"
+            else
+                append_log "${RED}Invalid value entered: ${BTENFORCE_STOP_TIME} - Defaulting to 15:00.${NC}"
+                BTENFORCE_STOP_TIME="15:00"
+            fi
+        fi
     else
-        echo -e "\n${RED}School stop time is not set.${NC}"
-        failed_items=$((failed_items + 1))
+        append_log "${GREEN}Default school stop time is 15:00.${NC}"
+        BTENFORCE_STOP_TIME="15:00"
     fi
 
-    echo "-------------------------------"  
+    echo "-------------------------------"
 
-    # Log file path.
-    read "BTENFORCE_LOG_FILE?Enter log file path (press enter for default): "
-
-    if [[ -z "$BTENFORCE_LOG_FILE" ]]; then
-        echo -e "\n${YELLOW}Log file path is not set. Using /var/log/btenforce.log${NC}"
-        BTENFORCE_LOG_FILE="/var/log/btenforce.log"
+    ((option_number++))
+    # Set the retention period for log files. Default is 180 days.
+    if read -t 600 "LOG_RETENTION?[${option_number}/${total_options}] Enter log retention period in days from 7-1095 (Press enter for [${ORANGE}180${NC}]): "; then
+        if [[ -z "$LOG_RETENTION" ]]; then
+            append_log "${GREEN}Using default log retention of 180 days.${NC}"
+            LOG_RETENTION="180"
+        elif [[ "$LOG_RETENTION" =~ ^(7|8|9|[1-9][0-9]|[1-9][0-9]{2}|10[0-8][0-9]|109[0-5])$ ]]; then
+            append_log "${GREEN}Log retention is set to ${LOG_RETENTION} days.${NC}"
+        else
+            append_log "${RED}Invalid value entered: ${LOG_RETENTION} - Defaulting to 180 days.${NC}"
+            LOG_RETENTION="180"
+        fi
     else
-        echo -e "\n${GREEN}Log file path is set to ${BTENFORCE_LOG_FILE}.\n${NC}"
+        append_log "${GREEN}Default log retention period is 180 days.${NC}"
+        LOG_RETENTION="180"
     fi
 
-    if [[ $failed_items -eq 0 ]]; then
-        echo -e "\n${GREEN}All items are set. Writing configuration file.\n${NC}"
-        cat << EOF > "$BTENFORCE_CONFIG"
-##                   btenforce Configuration File               
-##   Author: Keith Myers, i-Tech | keith.myers@i-techsupport.com 
-##                                                                                                
-##   https://www.i-techsupport.com | (407) 265-2000
-##   (C) 2026 i-Tech Support Inc.
+    echo "-------------------------------"
 
-# Configured on: $(date)
+    ((option_number++))
+    # Log file path. Use a new variable so that the log currently running isn't affected.
+    local new_log_path=""
+    if read -t 600 "new_log_path?[${option_number}/${total_options}] Enter log file path (press enter for [${ORANGE}${BTENFORCE_LOG_FILE}${NC}]): "; then
+        if [[ -z "$new_log_path" ]]; then
+            append_log "${GREEN}Using ${BTENFORCE_LOG_FILE}${NC}"
+            new_log_path="$BTENFORCE_LOG_FILE"
+        else
+            append_log "${GREEN}Log file path is set to ${new_log_path}.${NC}"
+        fi
+    else
+        append_log "${GREEN}Default log file path is ${BTENFORCE_LOG_FILE}.${NC}"
+        new_log_path="$BTENFORCE_LOG_FILE"
+    fi
+
+    echo "-------------------------------"
+
+
+    # Check whether the log file path is valid. If not, use the default path.
+    new_log_dir="$( dirname "$new_log_path" )"
+    if [[ ! -d "$new_log_dir" ]]; then
+        mkdir -p "$new_log_dir"
+        if [[ $? -ne 0 ]]; then
+            append_log "\n${RED}Could not create log directory: ${new_log_dir}. Using ${BTENFORCE_LOG_FILE}${NC}"
+            new_log_path="$BTENFORCE_LOG_FILE"
+        else
+            append_log "\n${GREEN}Log directory created: ${new_log_dir}${NC}"
+        fi
+    fi
+
+    append_log "\n${GREEN}Writing configuration file: ${BTENFORCE_CONFIG}\n${NC}"
+    cat << EOF > "$BTENFORCE_CONFIG"
+
+## ╔══════════════════════════════╗
+## ║ btenforce Configuration File ║
+## ║  _     _____         _       ║
+## ║ (_)   |_   _|__  ___| |___   ║
+## ║ | |_____| |/ _ \/ __| '_  \  ║
+## ║ | |_____| |  __/ (__| | | |  ║
+## ║ |_|     |_|\___|\___|_| |_|  ║
+## ║                              ║
+## ║ ▶︎ https://i-techsupport.com  ║
+## ║ ☎ (407) 265-2000 option: #1  ║
+## ║ ✉ support@i-techsupport.com  ║
+## ║ Author: Keith Myers, i-Tech  ║
+## ║ (C) 2026 i-Tech Support Inc  ║
+## ╚══════════════════════════════╝
+
+# Version: ${VERSION}
+# Configured on: $( date +"%Y-%m-%d %H:%M:%S" ) | via btenforce -configure option
+# Configured by: ${loggedInUser}
+# Configuration script path: ${SCRIPT_PATH}
 
 # Enable/disable the daemon (true/false).
 BTENFORCE_ACTIVE="$BTENFORCE_ACTIVE"
@@ -249,59 +509,102 @@ BTENFORCE_START_TIME="$BTENFORCE_START_TIME"
 BTENFORCE_STOP_TIME="$BTENFORCE_STOP_TIME"
 
 # Log file path.
-BTENFORCE_LOG_FILE="$BTENFORCE_LOG_FILE"
+BTENFORCE_LOG_FILE="$new_log_path"
 
 # Time constraint override.
 TIME_CONSTRAINT_OVERRIDE="$TIME_CONSTRAINT_OVERRIDE"
+
+# Log retention in days.
+LOG_RETENTION="$LOG_RETENTION"
 EOF
-    else
-        echo -e "\n${RED}$failed_items items are not set. Config file not created.${NC}"
 
-        # Prompt whether to start from the beginning or exit.
-        read -k 1 "RESTART?Restart from the beginning? (Y/N): "
+    append_log "${GREEN}Configuration saved. Please review.\n${NC}"
+    echo -e "${ORANGE}"
+    cat "$BTENFORCE_CONFIG"
+    echo -e "${NC}"
 
-        if [[ "$RESTART" == "Y" || "$RESTART" == "y" ]]; then
-            echo -e "\n${GREEN}Restarting the configuration...\n\n${NC}"
+    # Prompt whether to start from the beginning or exit.
+    if read -s -k 1 -t 120 "FINAL_RESTART?Would you like to restart the configuration? (Y/[${ORANGE}N${NC}]): "; then
+        if [[ "$FINAL_RESTART" == "Y" || "$FINAL_RESTART" == "y" ]]; then
+            append_log "\n${YELLOW}Restarting the configuration utility...${NC}"
+            sleep 2
             configure_btenforce
         else
-            echo -e "\n${RED}Exiting with error.${NC}"
-            exit 1
+            append_log "\n${GREEN}Goodbye.${NC}"
+            exit 0
         fi
+    else
+        append_log "\n${GREEN}Re-run the utility with btenforce -configure. Goodbye.${NC}"
+        exit 1
     fi
 }
 
-# Run the command as the logged in user. Needed for osascript.
-runAsUser() {  
-    if [ "$loggedInUser" != "loginwindow" ]; then
-        launchctl asuser "$uid" sudo -u "$loggedInUser" "$@"
+# Function to add missing LOG_RETENTION to the config file if not found.
+fix_missing_vars () {
+    if grep "^LOG_RETENTION=" "$BTENFORCE_CONFIG" >/dev/null; then
+        return 0
     else
-        append_log "Not logged on"
+        echo "LOG_RETENTION=\"180\"" >> "$BTENFORCE_CONFIG"
+        return 0
     fi
+}
+
+# Run a command as the logged in user.
+runAsUser() {
+    # Recheck for logged in user before executing osascript in the event the user logs out between the initial check and this function call.
+    loggedInUser=$( echo "show State:/Users/ConsoleUser" | scutil | awk '/Name :/ && ! /loginwindow/ { print $3 }' )
+
+    if [[ -z "${loggedInUser}" ]] && [[ "${loggedInUser}" != "loginwindow" ]]; then
+	    # Exit if no user is logged in. btenforce is user-facing.
+	    append_log "No user logged in. Exiting."
+	    exit 0
+    fi
+
+    # Execute the command sent to the function as the logged in user.
+    launchctl asuser "$uid" sudo -u "$loggedInUser" "$@"
 }
 
 prune_logs () {
-    local retention=${1:-180}
+    local retention="${1:-$LOG_RETENTION}"
     local log_file="${2:-$BTENFORCE_LOG_FILE}"
+
+    # Default to 180 days if missing or empty.
+    if [[ -z "$retention" ]] || [[ "$retention" == "" ]]; then
+        retention="180"
+        if ! fix_missing_vars; then
+            append_log "Failed to fix missing vars."
+            return 1
+        fi
+    fi
+
+    # Remove log files older than the retention period.
     find "$(dirname "$log_file")" \
         -name "$(basename "$log_file")" \
         -mtime +"${retention}" \
         -delete
-
-    append_log "Pruned logs older than ${retention} days."
+    
+    if [[ $? -ne 0 ]]; then
+        return 1
+    fi
 }
 
-# Install the LaunchDaemon if it doesn't exist. This is a falback measure. It should be installed by the MDM.
+# Install the LaunchDaemon if it doesn't exist.
 install_daemon () {
     if [[ ! -f "$PLIST_DEST" ]]; then
-        cp "$PLIST_SOURCE" "$PLIST_DEST"
-        chown root:wheel "$PLIST_DEST"
-        chmod 644 "$PLIST_DEST"
+        if [[ -f "$PLIST_SOURCE" ]]; then
+            cp "$PLIST_SOURCE" "$PLIST_DEST"
+            chown root:wheel "$PLIST_DEST"
+            chmod 644 "$PLIST_DEST"
+        else
+            append_log "Error: LaunchDaemon source file not found: ${PLIST_SOURCE}"
+            return 1
+        fi
 
         daemon_status=$( launchctl list | grep "com.itech.btenforce" || true )
 
         # Already running. Unload and reload.
         if [[ -n "$daemon_status" ]]; then
-            launchctl unload "$PLIST_DEST"
+            launchctl bootout system/com.itech.btenforce
             sleep 1
             launchctl bootstrap system "$PLIST_DEST"
             sleep 1
@@ -330,18 +633,34 @@ install_daemon () {
                 return 1
             fi
         fi
-
+    else
+        append_log "LaunchDaemon already installed: ${PLIST_DEST}"
+        return 0
     fi
 }
 
 # Check whether Bluetooth is on or off.
 check_bluetooth () {
     btutil="/usr/local/bin/blueutil"
+
+    # Source file if installed with the i-Tech package.
+    btutil_source="/usr/local/share/blueutil"
         
     # Double check that blueutil is executable.
     if [[ ! -x "$btutil" ]]; then
-        append_log "Error: Could not find the Bluetooth utility or it's not executable. Exiting without action."
-        return 1
+        if [[ -f "$btutil_source" ]]; then
+            cp "$btutil_source" "$btutil"
+            if [[ ! -f "$btutil" ]]; then
+                append_log "Could not find ${btutil}."
+                return 1
+            else
+                chmod +x "$btutil"
+                append_log "Copied Bluetooth utility from ${btutil_source} to ${btutil}. Version: $( /usr/local/bin/blueutil --version 2>/dev/null )"
+            fi
+        else
+            append_log "Error: Could not find Bluetooth utility source file at ${btutil_source}. Exiting without action."
+            return 1
+        fi
     fi
     
     # Required to run as root.
@@ -352,8 +671,7 @@ check_bluetooth () {
     # If Bluetooth is off, turn it back on.
     if [[ "$bstatus" -eq 0 ]]; then
         runAsUser /usr/local/bin/blueutil --power 1
-        local msg="Reactivated Bluetooth. User: ${loggedInUser}"
-        append_log "$msg"
+        append_log "Reactivated Bluetooth. User: ${loggedInUser}"
     fi
 }
 
@@ -379,8 +697,7 @@ return "false"
 ' 2>/dev/null )
         if [[ "$safari_is_open" == "true" ]]; then
             killall Safari &> /dev/null
-            local msg="Killed Safari PID: ${proc} for ${loggedInUser} via osascript."
-            append_log "$msg"
+            append_log "Killed Safari for ${loggedInUser} via osascript."
             return 0
         fi
     elif [[ "$SAFARI_CONTROL_METHOD" == "pgrep" ]]; then
@@ -388,8 +705,7 @@ return "false"
             
         if pgrep -x "Safari" >/dev/null; then
             killall Safari &> /dev/null
-            local msg="Killed Safari for ${loggedInUser} via pgrep"
-            append_log "$msg"
+            append_log "Killed Safari for ${loggedInUser} via pgrep"
             return 0
         fi
     else
@@ -402,7 +718,7 @@ return "false"
 during_school_hours () {
     
     if [[ "$BTENFORCE_DEBUG_MODE" == "true" || "$TIME_CONSTRAINT_OVERRIDE" == "true" ]]; then
-        append_log "During school hours - debug mode or time constraint override."
+        append_log "School hours are not considered due to debug mode or time constraint override set to true."
         return 0
     fi
 
@@ -435,7 +751,7 @@ during_school_hours () {
 }
 
 check_login_items () {
-    # Check if any login items exist for the current user
+    # Check if any login items exist for the current user.
     login_item_count=$(runAsUser osascript -e '
     tell application "System Events"
     count login items
@@ -448,16 +764,40 @@ check_login_items () {
         append_log "$login_item_status"
     fi
 }
+
+finished() {
+    if [[ "$EXIT_CODE" -ne 0 ]]; then
+        append_log "Exit code ${EXIT_CODE}."
+    fi
+    
+    exit "$EXIT_CODE"
+}
+
+trapint() {
+    if [[ -t 1 ]]; then
+        append_log "Control-C was pressed. Script terminated by ${loggedInUser}."
+    else
+        append_log "btenforce received a Control-C sequence or SIGKILL from an unknown source."
+    fi
+
+	exit "$EXIT_CODE"
+}
+
             
 
 # ══════════╣ MAIN SCRIPT ╠═══════════
+
+# Exit if running as a regular user. Prevents reconfiguring by standard users.
+(( EUID != 0 )) && { append_log "Must be run as root"; exit 112; }
+
+trap "finished" EXIT
+trap "trapint" INT TERM
 
 # Process arguments if there are any.
 if [[ "$#" -ge 1 ]]; then
     while [[ "$#" -gt 0 ]]; do
         case $1 in
             -configure)
-                echo "----- [ Configuration Mode ]-----"
                 configure_btenforce
                 shift
             ;;
@@ -474,14 +814,15 @@ if [[ "$#" -ge 1 ]]; then
     done
 fi
 
-prune_logs
+if ! prune_logs; then
+    append_log "Failed to prune logs."
+fi
 
 # Source the configuration file.
 if [[ -f "$BTENFORCE_CONFIG" ]]; then
     source "$BTENFORCE_CONFIG"
 else
-    missing_config="ERROR: Unable to find ${BTENFORCE_CONFIG}"
-    append_log "$missing_config"
+    append_log "Unable to find ${BTENFORCE_CONFIG}"
     exit 1
 fi
 
@@ -505,19 +846,31 @@ if [[ "$BTENFORCE_ACTIVE" == "true" ]]; then
             append_log "Daemon not found. Installing..."
             install_daemon
         fi
+
+        if [[ "$ACTIVE_USER" == "true" ]]; then
+
+            if [[ "$LOGIN_ITEM_CONTROL" == "enforce" ]]; then
+                check_login_items
+            fi   
         
-        if [[ "$BLUETOOTH_CONTROL" == "enforce" ]]; then
-            check_bluetooth
-        fi
-        
-        if [[ "$SAFARI_CONTROL" == "enforce" ]]; then
-            check_safari
-        fi
-        
-        if [[ "$LOGIN_ITEM_CONTROL" == "enforce" ]]; then
-            check_login_items
+            if [[ "$BLUETOOTH_CONTROL" == "enforce" ]]; then
+                check_bluetooth
+            fi
+            
+            if [[ "$SAFARI_CONTROL" == "enforce" ]]; then
+                check_safari
+            fi
+            
+            if [[ "$LOGIN_ITEM_CONTROL" == "enforce" ]]; then
+                check_login_items
+            fi
+        else
+            append_log "No user logged in. Exiting."
+            exit "$EXIT_CODE"
         fi
     fi
+else
+    append_log "BTENFORCE_ACTIVE is not set to true. Exiting."
 fi
 
 exit 0
