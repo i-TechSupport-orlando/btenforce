@@ -116,9 +116,11 @@ Most schools prefer students use Google Chrome due to the robust feature set des
 `blueutil` - https://github.com/toy/blueutil. The packaged release of btenforce contains `blueutil` version 2.9.
 
 # Troubleshooting
-- Bluetooth is not turning off: The most likely cause for this is that it's currently outside of the time window you set in the config file. Run `btenforce --debug` to test without time constraints. The other cause is that it's inside the time window but the daemon is not running. Use `sudo launchctl list | grep itech` to check if the daemon is running. If not, run `sudo launchctl bootstrap system/Library/LaunchDaemons/com.itech.btenforce.plist` to start it.
+- Bluetooth is not turning off: The most likely cause for this is that it's currently outside of the time window you set in the config file. Run `btenforce --debug` to test without time constraints. Another possible cause is that it's inside the time window but the daemon is not running. Use `sudo launchctl list | grep itech` to check if the daemon is running. If not, run `sudo launchctl bootstrap system/Library/LaunchDaemons/com.itech.btenforce.plist` to start it.
 - If the above is happening, the other features most likely are not working either since they are all controled via the same config file and daemon. Check `BTENFORCE_ACTIVE` in the config file and make sure it's set to `true`.
 - View the logs at `/var/log/btenforce.log`
+- You may also obtain the log entries from the Unified Log with `log show --predicate 'eventMessage contains "btenforce"' --info --debug`. When `btenforce` is called by the daemon, it will appear in the log in a format similar to:
+`launchd: [system/com.itech.btenforce [93638]:] Successfully spawned btenforce[93638] because interval`
 
 ## Debugging
 `btenforce --debug` will run the script in debug mode. Debug mode will override the day of week and time of day restrictions and run the script as though it is always in session. You may modify the configuration on a single computer with `btenforce --configure`. 
