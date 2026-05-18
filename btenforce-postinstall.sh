@@ -1,4 +1,4 @@
-#!/bin/zsh
+#!/bin/bash
 
 ## ╔═════════════════════════════════════════════════════════════════╗
 ## ║         Installs i-Tech btenforce Bluetooth Enforcement       	 ║
@@ -15,7 +15,8 @@
 ## Dependencies: blueutil (https://github.com/toy/blueutil) must be installed first.
 
 VERSION="2.1"
-SCRIPT_PATH="${0:A}"
+SCRIPT_DIR="$( cd "$( dirname "$0" )" && pwd )"
+SCRIPT_PATH="${SCRIPT_DIR}/$(basename "$0")"
 
 # ======================================================================
 # Jamf Pro parameters. Comment this block out if running post install
@@ -64,11 +65,17 @@ append_log () {
     
     # Strip ANSI color codes AND leading newlines for the log files.
     # The sed pipeline removes ANSI escape sequences and deletes the first line if it is empty.
-    local clean_text="$( echo -e "$message" | sed 's/\x1b\[[0-9;]*m//g' | sed '1{/^$/d;}' )"
+    local clean_text
+	clean_text="$( echo -e "$message" | sed 's/\x1b\[[0-9;]*m//g' | sed '1{/^$/d;}' )"
     
-    local date_stamp="$( date +"%Y-%m-%d %H:%M:%S" )"
-    local file_log_msg="${date_stamp} -- ${clean_text}"
-    local syslog_msg="version ${VERSION} -- ${clean_text}"
+    local date_stamp
+	date_stamp="$( date +"%Y-%m-%d %H:%M:%S" )"
+
+	local file_log_msg
+	file_log_msg="${date_stamp} -- ${clean_text}"
+	
+	local syslog_msg
+	syslog_msg="version ${VERSION} -- ${clean_text}"
 
     # If stdout is a terminal (interactive session), keep the colors.
     if [[ -t 1 ]]; then
@@ -85,9 +92,8 @@ append_log () {
 
 add_leading_zero() {
     local time="$1"
-	local time_array=(${(s/:/)time})
-	local hour="${time_array[1]}"
-	local minute="${time_array[2]}"
+	local hour="${time%%:*}"
+	local minute="${time##*:}"
 
 	# Strip any existing leading zeros to avoid double padding
 	hour="${hour#"${hour%%[!0]*}"}"
@@ -108,11 +114,8 @@ check_time_integer() {
         return 1
 	fi
 
-	# Split the string on the colon character into an array.
-	local time_array=(${(s/:/)time})
-
-	local hour="${time_array[1]}"
-	local minute="${time_array[2]}"
+	local hour="${time%%:*}"
+	local minute="${time##*:}"
 
 	# Using 10# forces base-10 evaluation, avoiding octal errors with 08 or 09.
 	if (( 10#$hour >= 0 && 10#$hour <= 23 )) && (( 10#$minute >= 0 && 10#$minute <= 59 )); then

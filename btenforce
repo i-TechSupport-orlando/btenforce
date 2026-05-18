@@ -58,6 +58,8 @@
 ##            - Added trap for ERR signal to log the error message and exit.
 ##            - Reduced unessential noise from logs when school is not in session by adding a flag file to
 ##              prevent the script from logging on every execution.
+##            - Modified the shebang from /bin/zsh to /bin/bash for compatibility in the post-install script.
+##              since that will be most likely executed by an MDM and if Mosyle, must be Bash.
 ##
 ## Author: Keith Myers | keith.myers@i-techsupport.com
 ##
@@ -78,7 +80,7 @@
 ## https://i-techsupport.com | info@i-techsupport.com | (407) 265-2000
 ##
 ## Permission is hereby granted, free of charge, to any person obtaining a copy of 
-## this software and associated documentation files (the Software”), to deal in 
+## this software and associated documentation files (the Software), to deal in 
 ## the Software without restriction, including without limitation the rights to use, 
 ## copy, modify, or merge, the Software, and to permit persons to whom the Software is
 ## furnished to do so, subject to the following conditions:
