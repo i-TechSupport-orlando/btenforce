@@ -10,6 +10,7 @@ A very simple launch daemon runs a script that checks if Bluetooth is turned off
 - `btenforce` is now a combination of the Bluetooth utility plus other functions such as Safari control and login item control. See the config file for more information.
 - The included version of `blueutil` is version 9 due to some irregularities with newer versions on macOS 26.
 - Removed ANSI color coding from log messages.
+- Reduced the interval to 5 seconds.
 - Added logging to configuration function.
 - Prevents reconfiguring by standard users.
 - Cleaned up redundant login check.

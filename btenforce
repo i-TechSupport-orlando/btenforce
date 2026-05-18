@@ -16,6 +16,7 @@
 ##   4/6/2026 - Added time constraint override option.
 ##            - Added ability to run as a daemon.
 ##  5/15/2026 - Version 2.1: 
+##            - Reduced the daemon interval to 5 seconds.
 ##            - Abandoned the app bundle structure. The package installer places
 ##              the main script in /usr/local/bin/btenforce and blueutil in 
 ##              /usr/local/share/btenforce/blueutil, and the daemon in 
@@ -67,8 +68,8 @@
 ## strict to prevent errors. Each variable is on its own line and is in the format
 ## VARIABLE="value".
 ## 
-## This script is designed to be called by a daemon and is written in zsh.
-## It must be run as root.
+## This script is designed to be called by a daemon.
+## It must be ran as root.
 ##
 ## macOS 26 and higher: Due to Apple's constraints on managing Bluetooth,
 ## when the utility first attempts to enable Bluetooth, a prompt is displayed
