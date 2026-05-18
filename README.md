@@ -103,9 +103,9 @@ Most schools prefer students use Google Chrome due to the robust feature set des
 6. Run `sudo launchctl bootstrap system/Library/LaunchDaemons/com.itech.btenforce.plist`
 
 ## Jamf Pro Installation
-1. Upload `btenforce.pkg` to Jamf Pro
+1. Upload `btenforce2.1.pkg` to Jamf Pro
 2. Upload `btenforce-postinstall.sh` to Jamf Pro
-3. Create a policy to install `btenforce.pkg` and then run `btenforce-postinstall.sh` with the desired parameters.
+3. Create a policy to install `btenforce2.1.pkg` and then run `btenforce-postinstall.sh` with the desired parameters.
 
 ## Mosyle Installation
 1. Distribute the package to the target macOS devices
