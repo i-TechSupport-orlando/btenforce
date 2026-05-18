@@ -1,11 +1,9 @@
 # btenforce for macOS
 Tested on macOS 13, 14, 15, and 26
 
-blueutil must be installed first - https://github.com/toy/blueutil. The packaged release of btenforce contains blueutil.
-
 Students love to turn Bluetooth off in an effort to thwart classroom monitoring tools. You cannot force Bluetooth to be on with an MDM profile because it then prevents the end-user from connecting peripherals. Also, if Bluetooth is off at the time you install the profile, the end-user will be unable to turn it back on.
 
-A very simple launch daemon runs a script that checks if Bluetooth is turned off.  If it's off, the script turns it back on and sends info to make.com where it then sends an email to the student and the tech department. I have found that setting the launch daemon to ten seconds works the best. I originally had it set higher, but the students would continually turn it back off. Ten seconds seems to be too agravating for even the most determined students. 
+A very simple launch daemon runs a script that checks if Bluetooth is turned off.  If it's off, the script turns it back on. I have found that setting the launch daemon to ten seconds works the best. I originally had it set higher, but the students would continually turn it back off. Ten seconds seems to be too agravating for even the most determined students. 
 
 ## Version 2.1 Changes
 - Abandoned the app bundle structure. The package installer places the main script in `/usr/local/bin/btenforce` and `blueutil` in `/usr/local/share/btenforce/blueutil`, and the daemon in `/Library/LaunchDaemons/com.itech.btenforce.plist`.
@@ -13,19 +11,17 @@ A very simple launch daemon runs a script that checks if Bluetooth is turned off
 - The included version of `blueutil` is version 9 due to some irregularities with newer versions on macOS 26.
 - Removed ANSI color coding from log messages.
 - Added logging to configuration function.
-- Added comment indicating that the script is running as a standard user.
 - Prevents reconfiguring by standard users.
 - Cleaned up redundant login check.
 - Added log retention period to the configuration options.
-- Added function to append missing configuration variables to the config file.
+- Added function to append missing configuration variables to the config file. This was necessary because previous versions of `btenforce` may have been installed without the new variables.
 - Added comprehensive configuration variable validation in post-install script.
-- Corrected the installation function to check for the source files before copying them.
-- Replaced deprecated `launchctl unload`/`bootstrap` with `bootout`/`bootstrap`.
+- Replaced deprecated `launchctl unload` / `launchctl load` with `bootout`/`bootstrap`.
 - Added version to `blueutil` on install/update for logging.
-- Added check for `blueutil` and then copy it from `/usr/local/share/btenforce/blueutil` if not found in `/usr/local/bin`.
+- Added check for `blueutil` and then copy it from `/usr/local/share/btenforce/blueutil` if not found in `/usr/local/bin`. The package doesn't overwrite blueutil by default.
 - Added `MDM_TYPE` variable for clarity in config file.
 - Added version to the log header in the config file for easy identification.
-- Refined configuration function for usability and convenience. It will now check for configuration errors in the config file and report them to the user.
+- Refined configuration function for usability and convenience. It will now check for configuration errors in the config file and report them to the admin user that's configuring `btenforce`.
 - Added parameters to postinstall script for Jamf Pro MDM and Mosyle MDM. See the notes in the postinstall script for more information.
 - Enhanced time entry and validation for the configuration function.
 - Added warning when configuring Safari function with `osascript` method on macOS.
@@ -40,7 +36,7 @@ A very simple launch daemon runs a script that checks if Bluetooth is turned off
 - Modified the shebang from `/bin/zsh` to `/bin/bash` for compatibility in the post-install script. since that will be most likely executed by an MDM and if Mosyle, must be Bash.
 
 ### Blueutil version
-When macOS 26 was released, the latest versions of `blueutil` no longer worked. At the time, the version that is working well is version 2.9. I have included the version of blueutil in the package installer.
+When macOS 26 was released, the latest versions of `blueutil` no longer worked with `btenforce`. The version that I've had the most luck with was version 2.9. I have included this version of blueutil in the package installer. The package copies the 2.9 binary to `/usr/local/share/blueutil` When `btenforce` is called, it checks whether `blueutil` exists in `/usr/local/bin/blueutil`. If it doesn't exist, it copies it from `/usr/local/share/blueutil` to `/usr/local/bin/blueutil`.
 
 ## Configuration variables and default values
 
@@ -117,6 +113,10 @@ This is a tactic used by students on managed macOS devices to launch software th
 
 # Debugging
 `btenforce --debug` will run the script in debug mode. Debug mode will override the day of week and time of day restrictions and run the script as though it is always in session. You may modify the configuration on a single computer with `btenforce --configure`. 
+
+# Dependencies
+`blueutil` - https://github.com/toy/blueutil. The packaged release of btenforce contains `blueutil` version 2.9.
+
 
 
 https://www.i-techsupport.com/educational-tech/
