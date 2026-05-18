@@ -15,8 +15,16 @@
 ##            - Renamed the application to btenforce (lowercase).
 ##   4/6/2026 - Added time constraint override option.
 ##            - Added ability to run as a daemon.
-##            - Added ability to run as a login item.
 ##  5/15/2026 - Version 2.1: 
+##            - Abandoned the app bundle structure. The package installer places
+##              the main script in /usr/local/bin/btenforce and blueutil in 
+##              /usr/local/share/btenforce/blueutil, and the daemon in 
+##              /Library/LaunchDaemons/com.itech.btenforce.plist.
+##            - btenforce is now a combination of the Bluetooth utility plus
+##              other functions such as Safari control and login item control. 
+##              See the config file for more information.
+##            - The included version of blueutil is version 9 due to some irregularities 
+##              with newer versions on macOS 26.
 ##            - Removed ANSI color coding from log messages.
 ##            - Added logging to configuration function.
 ##            - Added comment indicating that the script is running as a standard user.
@@ -51,28 +59,54 @@
 ##            - Reduced unessential noise from logs when school is not in session by adding a flag file to
 ##              prevent the script from logging on every execution.
 ##
-## Repository: https://github.com/i-TechSupport-orlando/btenforce
 ## Author: Keith Myers | keith.myers@i-techsupport.com
 ##
 ## Since this script is called repeatedly, the config file formatting is extremely
 ## strict to prevent errors. Each variable is on its own line and is in the format
 ## VARIABLE="value".
 ## 
-## This script is designed to be run as a daemon and is written in zsh.
+## This script is designed to be called by a daemon and is written in zsh.
 ## It must be run as root.
+##
+## macOS 26 and higher: Due to Apple's constraints on managing Bluetooth,
+## when the utility first attempts to enable Bluetooth, a prompt is displayed
+## to the user asking for permission to allow Bluetooth control. This prompt
+## must be answered with 'Allow' before the utility can be effective. 
+##
+## LICENSE
+## Copyright 2026, i-Tech Support Inc.
+## https://i-techsupport.com | info@i-techsupport.com | (407) 265-2000
+##
+## Permission is hereby granted, free of charge, to any person obtaining a copy of 
+## this software and associated documentation files (the Software”), to deal in 
+## the Software without restriction, including without limitation the rights to use, 
+## copy, modify, or merge, the Software, and to permit persons to whom the Software is
+## furnished to do so, subject to the following conditions:
+##
+## The above copyright notice, URL, email address, and this permission notice shall be 
+## included in all copies or substantial portions of the Software.
+##
+## THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, 
+## INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+## PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE 
+## FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR 
+## OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+## DEALINGS IN THE SOFTWARE.
+
+## ═══════════════════════════════════════════════════════════════════════════════════════ ##
 
 VERSION="2.1"
 SCRIPT_PATH="${0:A}"
 EXIT_CODE="0"
 ACTIVE_USER="false"
 NW_FLAG="/Library/Application Support/i-Tech/btenforce.nw"
+REPO="https://github.com/i-TechSupport-orlando/btenforce"
 
 # Application configuration file.
 BTENFORCE_CONFIG="/Library/Application Support/i-Tech/btenforce.env"
 BTENFORCE_LOG_FILE="/var/log/btenforce.log"
 TODAY=$( date +%Y-%m-%d )
 
-PLIST_SOURCE="/Applications/.i-Tech/btenforce.app/Contents/Resources/com.itech.btenforce.plist"
 PLIST="/Library/LaunchDaemons/com.itech.btenforce.plist"
 
 # Username of the user currently logged on and their ID.
@@ -126,8 +160,7 @@ debug_info() {
     append_log "BTENFORCE_ACTIVE:         ${BTENFORCE_ACTIVE}"
     append_log "TODAY:                    ${TODAY}"
     append_log "APP_BUNDLE_DIR:           ${APP_BUNDLE_DIR}"
-    append_log "PLIST_SOURCE:             ${PLIST_SOURCE}"
-    append_log "PLIST:               ${PLIST}"
+    append_log "PLIST:                    ${PLIST}"
     append_log "BLUEUTIL_ALLOW_ROOT:      ${BLUEUTIL_ALLOW_ROOT}"
     append_log "SAFARI_CONTROL:           ${SAFARI_CONTROL}"
     append_log "SAFARI_CONTROL_METHOD:    ${SAFARI_CONTROL_METHOD}"
@@ -187,7 +220,7 @@ configure_btenforce() {
     NC=$'\033[0m' # No color
 
     clear
-    local total_options=11
+    local total_options=10
     local option_number=0
 
     TERM=xterm-256color
@@ -222,41 +255,37 @@ configure_btenforce() {
     ((option_number++))
     # Enable/disable the daemon as a whole.
     if read -s -k 1 -t 600 "BTENFORCE_ACTIVE?[${option_number}/${total_options}] Enable btenforce? ([${ORANGE}Y${NC}]/N): "; then
-        if [[ -z "$BTENFORCE_ACTIVE" ]]; then
-            append_log "\n${GREEN}Defaulting to enable. btenforce is enabled.${NC}"
+        if [[ "$BTENFORCE_ACTIVE" == "Y" || "$BTENFORCE_ACTIVE" == "y" ]]; then
             BTENFORCE_ACTIVE="true"
-        elif [[ "$BTENFORCE_ACTIVE" == "Y" || "$BTENFORCE_ACTIVE" == "y" ]]; then
-            BTENFORCE_ACTIVE="true"
-            append_log "\n${GREEN}btenforce is enabled.${NC}"
+            append_log "\n${GREEN}You indicated yes. btenforce is now enabled.${NC}"
         elif [[ "$BTENFORCE_ACTIVE" == "N" || "$BTENFORCE_ACTIVE" == "n" ]]; then
             BTENFORCE_ACTIVE="false"
-            append_log "\n${RED}btenforce is disabled completely.${NC}"
+            append_log "\n${RED}You indicated no. btenforce is now disabled.${NC}"
         else
-            append_log "\n${GREEN}Defaulting to enable. btenforce is enabled.${NC}"
+            append_log "\n${GREEN}Invalid entry. Defaulting to enable. btenforce is now enabled.${NC}"
             BTENFORCE_ACTIVE="true"
         fi
     else
-        append_log "\n${GREEN}Defaulting to enable. btenforce is enabled.${NC}"
+        append_log "\n${GREEN}Timeout has expired. Defaulting to enable. btenforce is now enabled.${NC}"
         BTENFORCE_ACTIVE="true"
     fi
-
 
     echo "-------------------------------"
     ((option_number++))
     # Safari option. 'enforce' or 'allow'
     if read -s -k 1 -t 600 "SAFARI_CONTROL?[${option_number}/${total_options}] Enforce Safari restrictions? (force students to use Chrome, for example) (Y/[${ORANGE}N${NC}]): "; then
-        if [[ -z "$SAFARI_CONTROL" ]]; then
-            append_log "\n${GREEN}Defaulting to allow. Safari restrictions are not enabled.${NC}"
-            SAFARI_CONTROL="allow"
-        elif [[ "$SAFARI_CONTROL" == "Y" || "$SAFARI_CONTROL" == "y" ]]; then
+        if [[ "$SAFARI_CONTROL" == "Y" || "$SAFARI_CONTROL" == "y" ]]; then
             SAFARI_CONTROL="enforce"
-            append_log "\n${GREEN}Safari restrictions are enabled.${NC}"
-        else
+            append_log "\n${GREEN}You indicated yes. Safari restrictions are now enabled.${NC}"
+        elif [[ "$SAFARI_CONTROL" == "N" || "$SAFARI_CONTROL" == "n" ]]; then
             SAFARI_CONTROL="allow"
-            append_log "\n${GREEN}Safari restrictions are disabled.${NC}"
+            append_log "\n${RED}You indicated no. Safari restrictions are now disabled.${NC}"
+        else
+            append_log "\n${GREEN}Invalid entry. Defaulting to allow. Safari restrictions are now disabled.${NC}"
+            SAFARI_CONTROL="allow"
         fi
     else
-        append_log "\n${GREEN}Defaulting to allow. Safari restrictions are not enabled.${NC}"
+        append_log "\n${GREEN}Timeout has expired. Defaulting to allow. Safari restrictions are now disabled.${NC}"
         SAFARI_CONTROL="allow"
     fi
 
@@ -265,18 +294,18 @@ configure_btenforce() {
     ((option_number++))
     # Bluetooth option. 'enforce' or 'allow'
     if read -s -k 1 -t 600 "BLUETOOTH_CONTROL?[${option_number}/${total_options}] Enforce Bluetooth restrictions? (students will not be able to turn off Bluetooth) (Y/[${ORANGE}N${NC}]): "; then
-        if [[ -z "$BLUETOOTH_CONTROL" ]]; then
-            append_log "\n${GREEN}Defaulting to allow. Bluetooth enforcement is not restricted.${NC}"
-            BLUETOOTH_CONTROL="allow"
-        elif [[ "$BLUETOOTH_CONTROL" == "Y" || "$BLUETOOTH_CONTROL" == "y" ]]; then
+        if [[ "$BLUETOOTH_CONTROL" == "Y" || "$BLUETOOTH_CONTROL" == "y" ]]; then
             BLUETOOTH_CONTROL="enforce"
-            append_log "\n${GREEN}Bluetooth enforcement is enabled.${NC}"
-        else
+            append_log "\n${GREEN}You indicated yes. Bluetooth enforcement is now enabled.${NC}"
+        elif [[ "$BLUETOOTH_CONTROL" == "N" || "$BLUETOOTH_CONTROL" == "n" ]]; then
             BLUETOOTH_CONTROL="allow"
-            append_log "\n${GREEN}Defaulting to allow. Bluetooth control is not restricted.${NC}"
+            append_log "\n${RED}You indicated no. Bluetooth enforcement is now disabled.${NC}"
+        else
+            append_log "\n${GREEN}Invalid entry. Defaulting to allow. Bluetooth enforcement is now disabled.${NC}"
+            BLUETOOTH_CONTROL="allow"
         fi
     else
-        append_log "\n${GREEN}Defaulting to allow. Bluetooth control is not restricted.${NC}"
+        append_log "\n${GREEN}Timeout has expired. Defaulting to allow. Bluetooth enforcement is now disabled.${NC}"
         BLUETOOTH_CONTROL="allow"
     fi
 
@@ -285,18 +314,18 @@ configure_btenforce() {
     ((option_number++))
     # Login item controls. 'enforce' or 'allow'
     if read -s -k 1 -t 600 "LOGIN_ITEM_CONTROL?[${option_number}/${total_options}] Enforce login item controls? (restrict students from adding or removing login items) (Y/[${ORANGE}N${NC}]): "; then
-        if [[ -z "$LOGIN_ITEM_CONTROL" ]]; then
-            LOGIN_ITEM_CONTROL="allow"
-            append_log "\n${GREEN}Defaulting to allow. Student login item control is not restricted.${NC}"
-        elif [[ "$LOGIN_ITEM_CONTROL" == "Y" || "$LOGIN_ITEM_CONTROL" == "y" ]]; then
+        if [[ "$LOGIN_ITEM_CONTROL" == "Y" || "$LOGIN_ITEM_CONTROL" == "y" ]]; then
             LOGIN_ITEM_CONTROL="enforce"
-            append_log "\n${GREEN}Student login item control is restricted.${NC}"
-        else
+            append_log "\n${GREEN}You indicated yes. Students will not be able to save login items.${NC}"
+        elif [[ "$LOGIN_ITEM_CONTROL" == "N" || "$LOGIN_ITEM_CONTROL" == "n" ]]; then
             LOGIN_ITEM_CONTROL="allow"
-            append_log "\n${GREEN}Defaulting to allow. Student login item control is not restricted.${NC}"
+            append_log "\n${RED}You indicated no. Students will be able to save login items.${NC}"
+        else
+            append_log "\n${GREEN}Invalid entry. Defaulting to allow. Students will be able to save login items.${NC}"
+            LOGIN_ITEM_CONTROL="allow"
         fi
     else
-        append_log "\n${GREEN}Defaulting to allow. Student login item control is not restricted.${NC}"
+        append_log "\n${GREEN}Timeout has expired. Defaulting to allow. Students will be able to save login items.${NC}"
         LOGIN_ITEM_CONTROL="allow"
     fi
 
@@ -305,63 +334,64 @@ configure_btenforce() {
     ((option_number++))
     # Override time constraints. 'No' means student control enabled on nights/weekends.
     if read -s -k 1 -t 600 "TIME_CONSTRAINT_OVERRIDE?[${option_number}/${total_options}] Override the time constraints and enforce btenforce options 24x7? (Y/[${ORANGE}N${NC}]): "; then
-        if [[ -z "$TIME_CONSTRAINT_OVERRIDE" ]]; then
-            TIME_CONSTRAINT_OVERRIDE="false"
-            append_log "\n${GREEN}Default constraint override is disabled. Student control enabled on nights and weekends.${NC}"
-        elif [[ "$TIME_CONSTRAINT_OVERRIDE" == "Y" || "$TIME_CONSTRAINT_OVERRIDE" == "y" ]]; then
+        if [[ "$TIME_CONSTRAINT_OVERRIDE" == "Y" || "$TIME_CONSTRAINT_OVERRIDE" == "y" ]]; then
             TIME_CONSTRAINT_OVERRIDE="true"
-            append_log "\n${GREEN}Time constraint override is enabled. 24x7 enforcement.${NC}"
-        else
+            append_log "\n${GREEN}You indicated yes. Time constraint override is enabled. 24x7 enforcement.${NC}"
+        elif [[ "$TIME_CONSTRAINT_OVERRIDE" == "N" || "$TIME_CONSTRAINT_OVERRIDE" == "n" ]]; then
             TIME_CONSTRAINT_OVERRIDE="false"
-            append_log "\n${GREEN}Time constraint override is disabled. Student control enabled on nights and weekends.${NC}"
+            append_log "\n${GREEN}You indicated no. Time constraint override is disabled. Student control enabled on nights and weekends.${NC}"
+        else
+            append_log "\n${GREEN}Invalid entry. Defaulting to allow. Time constraint override is disabled.${NC}"
+            TIME_CONSTRAINT_OVERRIDE="false"
         fi
     else
+        append_log "\n${GREEN}Timeout has expired. Defaulting to allow. Time constraint override is disabled.${NC}"
         TIME_CONSTRAINT_OVERRIDE="false"
-        append_log "\n${GREEN}Default applied. Time constraint override is disabled.${NC}"
     fi
 
     echo "-------------------------------"
 
-    ((option_number++))
+    # ((option_number++))
     # Organization's fully qualified domain name (FQDN).
     # Not used in this version, but will be in a future version.
-    fqdn_regex='^([a-zA-Z0-9-]{1,63}\.)+[a-zA-Z]{2,}$'
-    if read -t 600 "BTENFORCE_DOMAIN?[${option_number}/${total_options}] Enter your organization's fully qualified domain name ([${ORANGE}ENTER${NC}] to skip): "; then
-        if [[ -z $BTENFORCE_DOMAIN ]]; then
-            BTENFORCE_DOMAIN=""
-            append_log "${YELLOW}Skipping FQDN entry.${NC}"
-        elif [[ $BTENFORCE_DOMAIN =~ $fqdn_regex ]]; then
-            if [[ "$BTENFORCE_DOMAIN" == *"yourdomain"* ]]; then
-                append_log "${GREEN}Using default FQDN of ${BTENFORCE_DOMAIN}.${NC}"
-            else
-                append_log "${GREEN}Using FQDN of ${BTENFORCE_DOMAIN}.${NC}"
-            fi
-        else
-            append_log "${YELLOW}Invalid value entered: ${BTENFORCE_DOMAIN} Skipping FQDN entry.${NC}"
-            BTENFORCE_DOMAIN=""
-        fi
-    else
-        append_log "${GREEN}Skipping FQDN entry.${NC}"
-        BTENFORCE_DOMAIN=""
-    fi
+    # fqdn_regex='^([a-zA-Z0-9-]{1,63}\.)+[a-zA-Z]{2,}$'
+    # if read -t 600 "BTENFORCE_DOMAIN?[${option_number}/${total_options}] Enter your organization's fully qualified domain name ([${ORANGE}ENTER${NC}] to skip): "; then
+    #     if [[ -z $BTENFORCE_DOMAIN ]]; then
+    #         BTENFORCE_DOMAIN=""
+    #         append_log "${YELLOW}Skipping FQDN entry.${NC}"
+    #     elif [[ $BTENFORCE_DOMAIN =~ $fqdn_regex ]]; then
+    #         if [[ "$BTENFORCE_DOMAIN" == *"yourdomain"* ]]; then
+    #             append_log "${GREEN}Using default FQDN of ${BTENFORCE_DOMAIN}.${NC}"
+    #         else
+    #             append_log "${GREEN}Using FQDN of ${BTENFORCE_DOMAIN}.${NC}"
+    #         fi
+    #     else
+    #         append_log "${YELLOW}Invalid value entered: ${BTENFORCE_DOMAIN} Skipping FQDN entry.${NC}"
+    #         BTENFORCE_DOMAIN=""
+    #     fi
+    # else
+    #     append_log "${GREEN}Skipping FQDN entry.${NC}"
+    #     BTENFORCE_DOMAIN=""
+    # fi
 
-    echo "-------------------------------"
+    # echo "-------------------------------"
 
     ((option_number++))
     # Safari blocking option. 'osascript', 'pgrep'
     if read -s -k 1 -t 600 "SAFARI_CONTROL_METHOD?[${option_number}/${total_options}] Enter Safari blocking method: (Osascript/[${ORANGE}P${NC}]grep): "; then
-        if [[ -z "$SAFARI_CONTROL_METHOD" ]]; then
-            append_log "\n${GREEN}Default Safari blocking method is pgrep.${NC}"
-        elif [[ "$SAFARI_CONTROL_METHOD" == "O" || "$SAFARI_CONTROL_METHOD" == "o" ]]; then
+        if [[ "$SAFARI_CONTROL_METHOD" == "O" || "$SAFARI_CONTROL_METHOD" == "o" ]]; then
             SAFARI_CONTROL_METHOD="osascript"
-            append_log "\n${GREEN}Safari blocking method is osascript.${NC}"
+            append_log "\n${GREEN}You indicated Osascript. Safari blocking method is osascript.${NC}"
             append_log "\n${ORANGE}osascript may require a configuration profile to set the permissions. Use pgrep method instead if students are prompted for permissions.${NC}"
+        elif [[ "$SAFARI_CONTROL_METHOD" == "P" || "$SAFARI_CONTROL_METHOD" == "p" ]]; then
+            SAFARI_CONTROL_METHOD="pgrep"
+            append_log "\n${GREEN}You indicated pgrep. Safari blocking method is pgrep.${NC}"
         else
             SAFARI_CONTROL_METHOD="pgrep"
-            append_log "\n${GREEN}Safari blocking method is pgrep.${NC}"
+            append_log "\n${GREEN}Invalid entry. Defaulting to pgrep Safari blocking method.${NC}"
         fi
     else
-        append_log "\n${GREEN}Default Safari blocking method is pgrep.${NC}"
+        append_log "\n${GREEN}Timeout has expired. Defaulting to pgrep Safari blocking method.${NC}"
         SAFARI_CONTROL_METHOD="pgrep"
     fi
 
@@ -385,7 +415,7 @@ configure_btenforce() {
             fi
         fi
     else
-        append_log "${GREEN}Default school start time is 07:00.${NC}"
+        append_log "${GREEN}Timeout has expired. Defaulting to 07:00.${NC}"
         BTENFORCE_START_TIME="07:00"
     fi
 
@@ -408,7 +438,7 @@ configure_btenforce() {
             fi
         fi
     else
-        append_log "${GREEN}Default school stop time is 15:00.${NC}"
+        append_log "${GREEN}Timeout has expired. Defaulting to 15:00.${NC}"
         BTENFORCE_STOP_TIME="15:00"
     fi
 
@@ -427,7 +457,7 @@ configure_btenforce() {
             LOG_RETENTION="180"
         fi
     else
-        append_log "${GREEN}Default log retention period is 180 days.${NC}"
+        append_log "${GREEN}Timeout has expired. Defaulting to 180.${NC}"
         LOG_RETENTION="180"
     fi
 
@@ -444,7 +474,7 @@ configure_btenforce() {
             append_log "${GREEN}Log file path is set to ${new_log_path}.${NC}"
         fi
     else
-        append_log "${GREEN}Default log file path is ${BTENFORCE_LOG_FILE}.${NC}"
+        append_log "${GREEN}Timeout has expired. Defaulting to ${BTENFORCE_LOG_FILE}.${NC}"
         new_log_path="$BTENFORCE_LOG_FILE"
     fi
 
@@ -452,14 +482,16 @@ configure_btenforce() {
 
 
     # Check whether the log file path is valid. If not, use the default path.
-    new_log_dir="$( dirname "$new_log_path" )"
-    if [[ ! -d "$new_log_dir" ]]; then
-        mkdir -p "$new_log_dir"
-        if [[ $? -ne 0 ]]; then
-            append_log "\n${RED}Could not create log directory: ${new_log_dir}. Using ${BTENFORCE_LOG_FILE}${NC}"
-            new_log_path="$BTENFORCE_LOG_FILE"
-        else
-            append_log "\n${GREEN}Log directory created: ${new_log_dir}${NC}"
+    if [[ -n "$new_log_path" ]]; then
+        new_log_dir="$( dirname "$new_log_path" )"
+        if [[ ! -d "$new_log_dir" ]]; then
+            mkdir -p "$new_log_dir"
+            if [[ $? -ne 0 ]]; then
+                append_log "\n${RED}Could not create log directory: ${new_log_dir}. Using ${BTENFORCE_LOG_FILE}${NC}"
+                new_log_path="$BTENFORCE_LOG_FILE"
+            else
+                append_log "\n${GREEN}Log directory confirmed: ${new_log_dir}${NC}"
+            fi
         fi
     fi
 
