@@ -41,37 +41,37 @@ When macOS 26 was released, the latest versions of `blueutil` no longer worked w
 ## Configuration variables and default values
 ```bash
 # Enable/disable the daemon (bool)
-`BTENFORCE_ACTIVE="true"`
+BTENFORCE_ACTIVE="true"
 
 # Fully qualified domain name (string)
-`BTENFORCE_DOMAIN="yourdomain.org"`
+BTENFORCE_DOMAIN="yourdomain.org"
 
 # Safari blocking option. 'enforce', 'allow' (string)
-`SAFARI_CONTROL="allow"`
+SAFARI_CONTROL="allow"
 
 # Safari blocking method. 'osascript', 'pgrep' (string)
-`SAFARI_CONTROL_METHOD="pgrep"`
+SAFARI_CONTROL_METHOD="pgrep"
 
 # Bluetooth blocking option. 'enforce', 'allow' (string)
-`BLUETOOTH_CONTROL="enforce"`
+BLUETOOTH_CONTROL="enforce"
 
 # Login item control. 'enforce', 'allow' (string)
-`LOGIN_ITEM_CONTROL="allow"`
+LOGIN_ITEM_CONTROL="allow"
 
 # School start time in 24-hour clock. Format: HH:MM (string)
-`BTENFORCE_START_TIME="07:00"`
+BTENFORCE_START_TIME="07:00"
 
 # School stop time in 24-hour clock. Format: HH:MM (string)
-`BTENFORCE_STOP_TIME="15:00"`
+BTENFORCE_STOP_TIME="15:00"
 
 # Log file path (string)
-`BTENFORCE_LOG_FILE="/var/log/btenforce.log"`
+BTENFORCE_LOG_FILE="/var/log/btenforce.log"
 
 # Time constraint override. (bool)
-`TIME_CONSTRAINT_OVERRIDE="false"`
+TIME_CONSTRAINT_OVERRIDE="false"
 
 # Log retention in days (int) Range: 7-1095
-`LOG_RETENTION="$LOG_RETENTION"`
+LOG_RETENTION="$LOG_RETENTION"`
 ```
 ## Safari Prevention
 Most schools prefer students use Google Chrome due to the robust feature set designed spcificaly with schools in mind. The problem is macOS does not have an easy way to restrict its usage by end-users. `btenforce` effectively prevents Safari from being used because if the app is detected, it's killed. Hopefully Apple adds more robust web browser restrictions in a future version of macOS.
