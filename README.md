@@ -73,13 +73,14 @@ Time constraint override. (bool)
 Log retention in days (int) Range: 7-1095
 `LOG_RETENTION="$LOG_RETENTION"`
 
-## Safari may be blocked via two methods
-- osascript: This is the most accurate method as it will only alert to open Safari windows.
-- pgrep:     If osascript isn't possible due to a TCC restriction and you cannot create a PPPC profile, this is a good alternative. It will have some false positives. `pgrep` is the default method used. If `$SAFARI_CONTROL` is set to `allow`, `$SAFARI_CONTROL_METHOD` will be ignored.
+## Safari Prevention
+Most schools prefer students use Google Chrome due to the robust feature set designed spcificaly with schools in mind. The problem is macOS does not have an easy way to restrict its usage by end-users. `btenforce` effectively prevents Safari from being used because if the app is detected, it's killed. Hopefully Apple adds more robust web browser restrictions in a future version of macOS.
+
+- osascript: This is the most accurate method as it will only alert to open Safari windows. This requires a config profile that I have yet to get working.
+- pgrep:     If osascript isn't possible due to a prompting the students to approve it, or you cannot create a PPPC profile, this is a good alternative. It will have some false positives though. `pgrep` is the default method used. If `$SAFARI_CONTROL` is set to `allow`, `$SAFARI_CONTROL_METHOD` will be ignored.
 
 ## Delete Login Items
-`LOGIN_ITEM_CONTROL="enforce"` Deletes all user added login items. This prevents the students from loading software when the machine boots.
-This is a tactic used by students on managed macOS devices to launch software that is restricted by Jamf Pro. There's a delay between when the device boots and when Jamf Pro's software restrictions feature begins enforcing restricted software. Restricting login items prevents the students from launching software on the restricted list. If a student adds a login item, it is quickly deleted by `btenforce`.
+`LOGIN_ITEM_CONTROL="enforce"` Deletes all user added login items. This prevents the students from loading software when the machine boots. This is a tactic used by students on managed macOS devices to launch software that is restricted by Jamf Pro. There's a delay between when the device boots and when Jamf Pro's software restrictions feature begins enforcing restricted software. Restricting login items prevents the students from launching software on the restricted list. If a student adds a login item, it is quickly deleted by `btenforce`.
 
 ## Daemon Status and Control
 - Check Daemon
@@ -98,7 +99,7 @@ This is a tactic used by students on managed macOS devices to launch software th
 2. Copy `blueutil` to `/usr/local/bin`
 3. Copy `com.itech.btenforce.plist` to `/Library/LaunchDaemons`
 4. Copy `btenforce.env` to `/Library/Application Support/i-Tech/btenforce`
-5. Set ownership of the files to root and set permissions to prevent changes by students (644)
+5. Set ownership of the files to `root:wheel` and set permissions to prevent changes by students (`644`)
 6. Run `sudo launchctl bootstrap system/Library/LaunchDaemons/com.itech.btenforce.plist`
 
 ## Jamf Pro Installation
@@ -111,11 +112,19 @@ This is a tactic used by students on managed macOS devices to launch software th
 2. Edit `btenforce-postinstall.sh` to comment out the Jamf Pro params and uncomment the Mosyle params
 3. Create a Mosyle custom command to run `btenforce-postinstall.sh` and scope to the endpoints that have received the package
 
-# Debugging
-`btenforce --debug` will run the script in debug mode. Debug mode will override the day of week and time of day restrictions and run the script as though it is always in session. You may modify the configuration on a single computer with `btenforce --configure`. 
-
 # Dependencies
 `blueutil` - https://github.com/toy/blueutil. The packaged release of btenforce contains `blueutil` version 2.9.
+
+# Troubleshooting
+- Bluetooth is not turning off: The most likely cause for this is that it's currently outside of the time window you set in the config file. Run `btenforce --debug` to test without time constraints. The other cause is that it's inside the time window but the daemon is not running. Use `sudo launchctl list | grep itech` to check if the daemon is running. If not, run `sudo launchctl bootstrap system/Library/LaunchDaemons/com.itech.btenforce.plist` to start it.
+- If the above is happening, the other features most likely are not working either since they are all controled via the same config file and daemon. Check `BTENFORCE_ACTIVE` in the config file and make sure it's set to `true`.
+- View the logs at `/var/log/btenforce.log`
+
+## Debugging
+`btenforce --debug` will run the script in debug mode. Debug mode will override the day of week and time of day restrictions and run the script as though it is always in session. You may modify the configuration on a single computer with `btenforce --configure`. 
+
+
+
 
 
 
