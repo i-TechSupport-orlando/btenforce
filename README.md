@@ -39,40 +39,40 @@ A very simple launch daemon runs a script that checks if Bluetooth is turned off
 When macOS 26 was released, the latest versions of `blueutil` no longer worked with `btenforce`. The version that I've had the most luck with was version 2.9. I have included this version of blueutil in the package installer. The package copies the 2.9 binary to `/usr/local/share/blueutil` When `btenforce` is called, it checks whether `blueutil` exists in `/usr/local/bin/blueutil`. If it doesn't exist, it copies it from `/usr/local/share/blueutil` to `/usr/local/bin/blueutil`.
 
 ## Configuration variables and default values
-
-Enable/disable the daemon (bool)
+```bash
+# Enable/disable the daemon (bool)
 `BTENFORCE_ACTIVE="true"`
 
-Fully qualified domain name (string)
+# Fully qualified domain name (string)
 `BTENFORCE_DOMAIN="yourdomain.org"`
 
-Safari blocking option. 'enforce', 'allow' (string)
+# Safari blocking option. 'enforce', 'allow' (string)
 `SAFARI_CONTROL="allow"`
 
-Safari blocking method. 'osascript', 'pgrep' (string)
+# Safari blocking method. 'osascript', 'pgrep' (string)
 `SAFARI_CONTROL_METHOD="pgrep"`
 
-Bluetooth blocking option. 'enforce', 'allow' (string)
+# Bluetooth blocking option. 'enforce', 'allow' (string)
 `BLUETOOTH_CONTROL="enforce"`
 
-Login item control. 'enforce', 'allow' (string)
+# Login item control. 'enforce', 'allow' (string)
 `LOGIN_ITEM_CONTROL="allow"`
 
-School start time in 24-hour clock. Format: HH:MM (string)
+# School start time in 24-hour clock. Format: HH:MM (string)
 `BTENFORCE_START_TIME="07:00"`
 
-School stop time in 24-hour clock. Format: HH:MM (string)
+# School stop time in 24-hour clock. Format: HH:MM (string)
 `BTENFORCE_STOP_TIME="15:00"`
 
-Log file path (string)
+# Log file path (string)
 `BTENFORCE_LOG_FILE="/var/log/btenforce.log"`
 
-Time constraint override. (bool)
+# Time constraint override. (bool)
 `TIME_CONSTRAINT_OVERRIDE="false"`
 
-Log retention in days (int) Range: 7-1095
+# Log retention in days (int) Range: 7-1095
 `LOG_RETENTION="$LOG_RETENTION"`
-
+```
 ## Safari Prevention
 Most schools prefer students use Google Chrome due to the robust feature set designed spcificaly with schools in mind. The problem is macOS does not have an easy way to restrict its usage by end-users. `btenforce` effectively prevents Safari from being used because if the app is detected, it's killed. Hopefully Apple adds more robust web browser restrictions in a future version of macOS.
 
