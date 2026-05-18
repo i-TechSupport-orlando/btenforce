@@ -19,7 +19,7 @@ SCRIPT_PATH="${0:A}"
 
 # ======================================================================
 # Jamf Pro parameters. Comment this block out if running post install
-# script directly or using Mosyle or no MDM.
+# script directly, using Mosyle or no MDM at all.
 #
 BTENFORCE_ACTIVE="${4:-true}"
 BTENFORCE_START_TIME="${5}"
@@ -58,7 +58,6 @@ MDM_TYPE="Jamf Pro"
 
 # Do not edit below this line.
 
-
 # Add the date and time stamp to the log file.
 append_log () {
     local message="$1"
@@ -75,9 +74,6 @@ append_log () {
     if [[ -t 1 ]]; then
         # Echo the message with the ANSI color codes to the terminal.
         echo -e "$message"
-    else
-        # In MDM or redirected log files, strip ANSI color codes.
-        echo "$clean_text"
     fi
 
     # Append clean message to the persistent log file
@@ -133,9 +129,67 @@ check_config_values() {
 	elif [[ "$BTENFORCE_ACTIVE" = "false" ]]; then
 		append_log "BTENFORCE_ACTIVE is set to ${BTENFORCE_ACTIVE}"
 	else
-		append_log "BTENFORCE_ACTIVE is set to ${BTENFORCE_ACTIVE} which is not a valid value."
-		append_log "Rerun this script with the parameters set, or configure the daemon manually with -configure."
-		return 1
+		append_log "${BTENFORCE_ACTIVE} is not a valid value. Using default of true."
+		BTENFORCE_ACTIVE="true"
+	fi
+
+	# Check whether the Bluetooth control method is set.
+	if [[ -n "$BLUETOOTH_CONTROL" ]]; then
+		if [[ "$BLUETOOTH_CONTROL" = "enforce" ]] || [[ "$BLUETOOTH_CONTROL" = "allow" ]]; then
+			append_log "BLUETOOTH_CONTROL is set to ${BLUETOOTH_CONTROL}"
+		else
+			append_log "${BLUETOOTH_CONTROL} is not a valid value for BLUETOOTH_CONTROL. Defaulting to enforce."
+			BLUETOOTH_CONTROL="enforce"
+		fi
+	else
+		append_log "BLUETOOTH_CONTROL is not set. Defaulting to enforce."
+		BLUETOOTH_CONTROL="enforce"
+	fi
+
+	# Check whether the login item control is set.
+	if [[ -n "$LOGIN_ITEM_CONTROL" ]]; then
+		if [[ "$LOGIN_ITEM_CONTROL" = "enforce" ]] || [[ "$LOGIN_ITEM_CONTROL" = "allow" ]]; then
+			append_log "LOGIN_ITEM_CONTROL is set to ${LOGIN_ITEM_CONTROL}"
+		else
+			append_log "${LOGIN_ITEM_CONTROL} is not a valid value for LOGIN_ITEM_CONTROL. Defaulting to allow."
+			LOGIN_ITEM_CONTROL="allow"
+		fi
+	else
+		append_log "LOGIN_ITEM_CONTROL is not set. Defaulting to allow."
+		LOGIN_ITEM_CONTROL="allow"
+	fi
+
+	# Check whether the time constraint override is set.
+	if [[ -n "$TIME_CONSTRAINT_OVERRIDE" ]]; then
+		if [[ "$TIME_CONSTRAINT_OVERRIDE" = "true" ]] || [[ "$TIME_CONSTRAINT_OVERRIDE" = "false" ]]; then
+			append_log "TIME_CONSTRAINT_OVERRIDE is set to ${TIME_CONSTRAINT_OVERRIDE}"
+		else
+			append_log "${TIME_CONSTRAINT_OVERRIDE} is not a valid value. Defaulting to false."
+			TIME_CONSTRAINT_OVERRIDE="false"
+		fi
+	else
+		append_log "TIME_CONSTRAINT_OVERRIDE is not set. Defaulting to false."
+	fi
+
+	# Check whether the domain is set.
+	if [[ -n "$BTENFORCE_DOMAIN" ]]; then
+		append_log "BTENFORCE_DOMAIN is set to ${BTENFORCE_DOMAIN}"
+	else
+		append_log "BTENFORCE_DOMAIN is not set. Defaulting to NOT SET."
+		BTENFORCE_DOMAIN="NOT SET"
+	fi
+
+	# Check whether the Safari control method is set.
+	if [[ -n "$SAFARI_CONTROL_METHOD" ]]; then
+		if [[ "$SAFARI_CONTROL_METHOD" = "osascript" ]] || [[ "$SAFARI_CONTROL_METHOD" = "pgrep" ]]; then
+			append_log "SAFARI_CONTROL_METHOD is set to ${SAFARI_CONTROL_METHOD}"
+		else
+			append_log "${SAFARI_CONTROL_METHOD} is not a valid value for SAFARI_CONTROL_METHOD. Defaulting to pgrep."
+			SAFARI_CONTROL_METHOD="pgrep"
+		fi
+	else
+		append_log "SAFARI_CONTROL_METHOD is not set. Defaulting to pgrep."
+		SAFARI_CONTROL_METHOD="pgrep"
 	fi
 
 	if [[ -n "$BTENFORCE_START_TIME" ]]; then
@@ -144,13 +198,12 @@ check_config_values() {
 		if check_time_integer "$BTENFORCE_START_TIME"; then
 			append_log "BTENFORCE_START_TIME is set to ${BTENFORCE_START_TIME}"
 		else
-			append_log "BTENFORCE_START_TIME is set to ${BTENFORCE_START_TIME} which is not a valid value."
-			append_log "Rerun this script with the parameters set, or configure the daemon manually with -configure."
-			return 1
+			append_log "${BTENFORCE_START_TIME} is not a valid value. Defaulting to 07:45."
+			BTENFORCE_START_TIME="07:45"
 		fi
 	else
-		append_log "BTENFORCE_START_TIME is not set."
-		return 1
+		append_log "BTENFORCE_START_TIME is not set. Defaulting to 07:45."
+		BTENFORCE_START_TIME="07:45"
 	fi
 
 	if [[ -n "$BTENFORCE_STOP_TIME" ]]; then
@@ -159,113 +212,33 @@ check_config_values() {
 		if check_time_integer "$BTENFORCE_STOP_TIME"; then
 			append_log "BTENFORCE_STOP_TIME is set to ${BTENFORCE_STOP_TIME}"
 		else
-			append_log "BTENFORCE_STOP_TIME is set to ${BTENFORCE_STOP_TIME} which is not a valid value."
-			append_log "Rerun this script with the parameters set, or configure the daemon manually with -configure."
-			return 1
+			append_log "${BTENFORCE_STOP_TIME} is not a valid value. Defaulting to 15:00."
+			BTENFORCE_STOP_TIME="15:00"
 		fi
 	else
-		append_log "BTENFORCE_STOP_TIME is not set."
-		return 1
+		append_log "BTENFORCE_STOP_TIME is not set. Defaulting to 15:00."
+		BTENFORCE_STOP_TIME="15:00"
 	fi
 
-	# Check whether the Safari control method is set.
-	if [[ -n "$SAFARI_CONTROL_METHOD" ]]; then
-		if [[ "$SAFARI_CONTROL_METHOD" = "osascript" ]] || [[ "$SAFARI_CONTROL_METHOD" = "pgrep" ]]; then
-			append_log "SAFARI_CONTROL_METHOD is set to ${SAFARI_CONTROL_METHOD}"
+	# Check whether the log retention period is set.
+	if [[ -n "$LOG_RETENTION" ]]; then
+		if [[ "$LOG_RETENTION" =~ ^[0-9]+$ ]]; then
+			append_log "LOG_RETENTION is set to ${LOG_RETENTION} days."
 		else
-			append_log "SAFARI_CONTROL_METHOD is set to ${SAFARI_CONTROL_METHOD} which is not a valid value."
-			append_log "Rerun this script with the parameters set, or configure the daemon manually with -configure."
-			return 1
+			append_log "${LOG_RETENTION} is not a valid value for LOG_RETENTION. Defaulting to 180 days."
+			LOG_RETENTION="180"
 		fi
 	else
-		append_log "SAFARI_CONTROL_METHOD is not set."
-		return 1
-	fi
-
-	# Check whether the Bluetooth control method is set.
-	if [[ -n "$BLUETOOTH_CONTROL" ]]; then
-		if [[ "$BLUETOOTH_CONTROL" = "enforce" ]] || [[ "$BLUETOOTH_CONTROL" = "allow" ]]; then
-			append_log "BLUETOOTH_CONTROL is set to ${BLUETOOTH_CONTROL}"
-		else
-			append_log "BLUETOOTH_CONTROL is set to ${BLUETOOTH_CONTROL} which is not a valid value."
-			append_log "Rerun this script with the parameters set, or configure the daemon manually with -configure."
-			return 1
-		fi
-	else
-		append_log "BLUETOOTH_CONTROL is not set."
-		return 1
-	fi
-
-	# Check whether the login item control is set.
-	if [[ -n "$LOGIN_ITEM_CONTROL" ]]; then
-		if [[ "$LOGIN_ITEM_CONTROL" = "enforce" ]] || [[ "$LOGIN_ITEM_CONTROL" = "allow" ]]; then
-			append_log "LOGIN_ITEM_CONTROL is set to ${LOGIN_ITEM_CONTROL}"
-		else
-			append_log "LOGIN_ITEM_CONTROL is set to ${LOGIN_ITEM_CONTROL} which is not a valid value."
-			append_log "Rerun this script with the parameters set, or configure the daemon manually with -configure."
-			return 1
-		fi
-	else
-		append_log "LOGIN_ITEM_CONTROL is not set."
-		return 1
-	fi
-
-	# Check whether the domain is set.
-	if [[ -n "$BTENFORCE_DOMAIN" ]]; then
-		append_log "BTENFORCE_DOMAIN is set to ${BTENFORCE_DOMAIN}"
-	else
-		append_log "BTENFORCE_DOMAIN is not set."
-		return 1
-	fi
-
-	# Check whether the debug mode is set.
-	if [[ -n "$BTENFORCE_DEBUG_MODE" ]]; then
-		if [[ "$BTENFORCE_DEBUG_MODE" = "true" ]] || [[ "$BTENFORCE_DEBUG_MODE" = "false" ]]; then
-			append_log "BTENFORCE_DEBUG_MODE is set to ${BTENFORCE_DEBUG_MODE}"
-		else
-			append_log "BTENFORCE_DEBUG_MODE is set to ${BTENFORCE_DEBUG_MODE} which is not a valid value."
-			append_log "Rerun this script with the parameters set, or configure the daemon manually with sudo btenforce -configure."
-			return 1
-		fi
-	else
-		append_log "BTENFORCE_DEBUG_MODE is not set."
-		return 1
+		append_log "LOG_RETENTION is not set. Defaulting to 180 days."
+		LOG_RETENTION="180"
 	fi
 
 	# Check whether the log file path is set.
 	if [[ -n "$BTENFORCE_LOG_FILE" ]]; then
 		append_log "BTENFORCE_LOG_FILE is set to ${BTENFORCE_LOG_FILE}"
 	else
-		append_log "BTENFORCE_LOG_FILE is not set."
-		return 1
-	fi
-
-	# Check whether the time constraint override is set.
-	if [[ -n "$TIME_CONSTRAINT_OVERRIDE" ]]; then
-		if [[ "$TIME_CONSTRAINT_OVERRIDE" = "true" ]] || [[ "$TIME_CONSTRAINT_OVERRIDE" = "false" ]]; then
-			append_log "TIME_CONSTRAINT_OVERRIDE is set to ${TIME_CONSTRAINT_OVERRIDE}"
-		else
-			append_log "TIME_CONSTRAINT_OVERRIDE is set to ${TIME_CONSTRAINT_OVERRIDE} which is not a valid value."
-			append_log "Rerun this script with the parameters set, or configure the daemon manually with -configure."
-			return 1
-		fi
-	else
-		append_log "TIME_CONSTRAINT_OVERRIDE is not set."
-		return 1
-	fi
-
-	# Check whether the log retention period is set.
-	if [[ -n "$LOG_RETENTION" ]]; then
-		if [[ "$LOG_RETENTION" =~ ^[0-9]+$ ]]; then
-			append_log "LOG_RETENTION is set to ${LOG_RETENTION}"
-		else
-			append_log "LOG_RETENTION is set to ${LOG_RETENTION} which is not a valid value."
-			append_log "Rerun this script with the parameters set, or configure the daemon manually with -configure."
-			return 1
-		fi
-	else
-		append_log "LOG_RETENTION is not set."
-		return 1
+		append_log "BTENFORCE_LOG_FILE was not set. Using /var/log/btenforce.log"
+		BTENFORCE_LOG_FILE="/var/log/btenforce.log"
 	fi
 
 	return 0
@@ -299,7 +272,7 @@ enable_bluetooth() {
 
 # Main Script
 CONFIG_DIR="/Library/Application Support/i-Tech"
-CONFIG_FILE="${CONFIG_DIR}/btenforce.env"
+BTENFORCE_CONFIG="${CONFIG_DIR}/btenforce.env"
 PLIST="/Library/LaunchDaemons/com.itech.btenforce.plist"
 
 btenforce="/usr/local/bin/btenforce"
@@ -327,7 +300,7 @@ if [[ ! -d "$CONFIG_DIR" ]]; then
 	append_log "Created ${CONFIG_DIR}"
 fi
 
-cat << EOF > "$CONFIG_FILE"
+cat << EOF > "$BTENFORCE_CONFIG"
 
 ## ╔══════════════════════════════╗
 ## ║ btenforce Configuration File ║
@@ -385,7 +358,7 @@ TIME_CONSTRAINT_OVERRIDE="${TIME_CONSTRAINT_OVERRIDE}"
 LOG_RETENTION="${LOG_RETENTION}"
 EOF
 
-echo "Created configuration file: ${CONFIG_FILE}"
+echo "Created configuration file: ${BTENFORCE_CONFIG}"
 
 # Reset variables so that we can test that we can source them from the file for testing purposes.
 BTENFORCE_ACTIVE=""
@@ -402,18 +375,19 @@ LOG_RETENTION=""
 append_log "Unset initial variables."
 
 # Check if the configuration file exists.
-if [[ ! -f "$CONFIG_FILE" ]]; then
-	append_log "$CONFIG_FILE is not found."
+if [[ ! -f "$BTENFORCE_CONFIG" ]]; then
+	append_log "$BTENFORCE_CONFIG is not found."
 	exit 1
 fi
 
 # Configure read only permissions for the config file for non-root users.
-chmod 644 "$CONFIG_FILE"
-append_log "Made ${CONFIG_FILE} read-only."
+chmod 644 "$BTENFORCE_CONFIG"
+chown root "$BTENFORCE_CONFIG"
+append_log "Made ${BTENFORCE_CONFIG} read-only."
 
 # Source the config file
-source "$CONFIG_FILE"
-append_log "Sourced ${CONFIG_FILE}."
+source "$BTENFORCE_CONFIG"
+append_log "Sourced ${BTENFORCE_CONFIG}."
 
 # Check if the configuration file is valid.
 if check_config_values; then

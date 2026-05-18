@@ -47,6 +47,9 @@
 ##            - Added i-Tech banner with support info.
 ##            - Changed logic to continue if no user is logged on, then skip the controls and log the exit code.
 ##            - Added trap for INT and TERM signals to log the exit code and exit.
+##            - Added trap for ERR signal to log the error message and exit.
+##            - Reduced unessential noise from logs when school is not in session by adding a flag file to
+##              prevent the script from logging on every execution.
 ##
 ## Repository: https://github.com/i-TechSupport-orlando/btenforce
 ## Author: Keith Myers | keith.myers@i-techsupport.com
@@ -62,16 +65,15 @@ VERSION="2.1"
 SCRIPT_PATH="${0:A}"
 EXIT_CODE="0"
 ACTIVE_USER="false"
+NW_FLAG="/Library/Application Support/i-Tech/btenforce.nw"
 
 # Application configuration file.
 BTENFORCE_CONFIG="/Library/Application Support/i-Tech/btenforce.env"
 BTENFORCE_LOG_FILE="/var/log/btenforce.log"
 TODAY=$( date +%Y-%m-%d )
 
-# Location of AppBundle files.
-APP_BUNDLE_DIR="/Applications/.i-Tech/btenforce.app"
-PLIST_SOURCE="${APP_BUNDLE_DIR}/Contents/Resources/com.itech.btenforce.plist"
-PLIST_DEST="/Library/LaunchDaemons/com.itech.btenforce.plist"
+PLIST_SOURCE="/Applications/.i-Tech/btenforce.app/Contents/Resources/com.itech.btenforce.plist"
+PLIST="/Library/LaunchDaemons/com.itech.btenforce.plist"
 
 # Username of the user currently logged on and their ID.
 loggedInUser=$( echo "show State:/Users/ConsoleUser" | scutil | awk '/Name :/ && ! /loginwindow/ { print $3 }' )
@@ -92,7 +94,7 @@ if [[ -z "$uid" ]]; then
 	EXIT_CODE=1
 fi
 
-## Add the date and time stamp to the log file.
+# Add the date and time stamp to the log file.
 append_log () {
     local message="$1"
     
@@ -125,7 +127,7 @@ debug_info() {
     append_log "TODAY:                    ${TODAY}"
     append_log "APP_BUNDLE_DIR:           ${APP_BUNDLE_DIR}"
     append_log "PLIST_SOURCE:             ${PLIST_SOURCE}"
-    append_log "PLIST_DEST:               ${PLIST_DEST}"
+    append_log "PLIST:               ${PLIST}"
     append_log "BLUEUTIL_ALLOW_ROOT:      ${BLUEUTIL_ALLOW_ROOT}"
     append_log "SAFARI_CONTROL:           ${SAFARI_CONTROL}"
     append_log "SAFARI_CONTROL_METHOD:    ${SAFARI_CONTROL_METHOD}"
@@ -518,6 +520,9 @@ TIME_CONSTRAINT_OVERRIDE="$TIME_CONSTRAINT_OVERRIDE"
 LOG_RETENTION="$LOG_RETENTION"
 EOF
 
+    chmod 644 "$BTENFORCE_CONFIG"
+    chown root:wheel "$BTENFORCE_CONFIG"
+    
     append_log "${GREEN}Configuration saved. Please review.\n${NC}"
     echo -e "${ORANGE}"
     cat "$BTENFORCE_CONFIG"
@@ -590,11 +595,11 @@ prune_logs () {
 
 # Install the LaunchDaemon if it doesn't exist.
 install_daemon () {
-    if [[ ! -f "$PLIST_DEST" ]]; then
+    if [[ ! -f "$PLIST" ]]; then
         if [[ -f "$PLIST_SOURCE" ]]; then
-            cp "$PLIST_SOURCE" "$PLIST_DEST"
-            chown root:wheel "$PLIST_DEST"
-            chmod 644 "$PLIST_DEST"
+            cp "$PLIST_SOURCE" "$PLIST"
+            chown root:wheel "$PLIST"
+            chmod 644 "$PLIST"
         else
             append_log "Error: LaunchDaemon source file not found: ${PLIST_SOURCE}"
             return 1
@@ -606,7 +611,7 @@ install_daemon () {
         if [[ -n "$daemon_status" ]]; then
             launchctl bootout system/com.itech.btenforce
             sleep 1
-            launchctl bootstrap system "$PLIST_DEST"
+            launchctl bootstrap system "$PLIST"
             sleep 1
             daemon_status=$( launchctl list | grep "com.itech.btenforce" || true )
             if [[ -n "$daemon_status" ]]; then
@@ -619,7 +624,7 @@ install_daemon () {
         else
             append_log "Installing new LaunchDaemon..."
 
-            launchctl bootstrap system "$PLIST_DEST"
+            launchctl bootstrap system "$PLIST"
 
             sleep 1
 
@@ -634,7 +639,7 @@ install_daemon () {
             fi
         fi
     else
-        append_log "LaunchDaemon already installed: ${PLIST_DEST}"
+        append_log "LaunchDaemon already installed: ${PLIST}"
         return 0
     fi
 }
@@ -742,12 +747,18 @@ during_school_hours () {
     # Check if weekday (Mon–Fri) and time is between start and end
     if (( day_of_week >= 1 && day_of_week <= 5 )); then
         if (( current_total_minutes >= start_total_minutes && current_total_minutes < end_total_minutes )); then
-            return 0  # true. School in session.
+            rm -f "$NW_FLAG" 2>/dev/null
+            return 0
         fi
     fi
 
-    append_log "Not during school hours. Exiting."
-    return 1  # false. Night/weekend.
+    # Create flag file so it doesn't log every minute when school is not in session.
+    if [[ ! -f "$NW_FLAG" ]]; then
+        append_log "Not during school hours. Creating flag file."
+        touch "$NW_FLAG"
+    fi
+    
+    return 1
 }
 
 check_login_items () {
@@ -792,6 +803,7 @@ trapint() {
 
 trap "finished" EXIT
 trap "trapint" INT TERM
+trap 'append_log "Error on line $LINENO: $(sed -n ${LINENO}p \"$0\")"' ERR
 
 # Process arguments if there are any.
 if [[ "$#" -ge 1 ]]; then
@@ -842,9 +854,9 @@ if [[ "$BTENFORCE_ACTIVE" == "true" ]]; then
     if during_school_hours; then
         
         # Install the daemon if missing, then check each item.
-        if [[ ! -f "$PLIST_DEST" ]]; then
-            append_log "Daemon not found. Installing..."
-            install_daemon
+        if [[ ! -f "$PLIST" ]]; then
+            append_log "Daemon not found. Reinstall btenforce."
+            exit 113
         fi
 
         if [[ "$ACTIVE_USER" == "true" ]]; then
