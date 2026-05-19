@@ -258,6 +258,18 @@ configure_btenforce() {
 
     TERM=xterm-256color
 
+    # Check to ensure that the config file path is valid.
+    config_dir=$( dirname "$BTENFORCE_CONFIG" )
+    if [[ ! -d "$config_dir" ]]; then
+        mkdir -p "$config_dir"
+        if [[ $? -ne 0 ]]; then
+            append_log "\n${RED}Could not create configuration directory: ${config_dir}. Exiting.${NC}"
+            exit 1
+        else
+            append_log "\n${GREEN}Configuration directory confirmed: ${config_dir}${NC}"
+        fi
+    fi
+
     echo -e " ╔═════════════════════════════╗ "
     echo -e " ║   btenforce Config Builder  ║ "
     echo -e " ║ ${ORANGE} _     _____         _      ${NC}║ "
@@ -323,7 +335,7 @@ configure_btenforce() {
 
     (( option_number += 1 ))
     # Bluetooth option. 'enforce' or 'allow'
-    if read -s -k 1 -t 600 "BLUETOOTH_CONTROL?[${option_number}/${total_options}] Enforce Bluetooth restrictions? (students will not be able to turn off Bluetooth) (Y/[${ORANGE}N${NC}]): "; then
+    if read -s -k 1 -t 600 "BLUETOOTH_CONTROL?[${option_number}/${total_options}] Enforce Bluetooth restrictions? (students will not be able to turn off Bluetooth) ([${ORANGE}Y${NC}/N]): "; then
         if [[ "$BLUETOOTH_CONTROL" == "Y" || "$BLUETOOTH_CONTROL" == "y" ]]; then
             BLUETOOTH_CONTROL="enforce"
             append_log "\n${GREEN}You indicated yes. Bluetooth enforcement is now enabled.${NC}"
@@ -331,12 +343,12 @@ configure_btenforce() {
             BLUETOOTH_CONTROL="allow"
             append_log "\n${RED}You indicated no. Bluetooth enforcement is now disabled.${NC}"
         else
-            append_log "\n${GREEN}Invalid or no entry. Defaulting to allow. Bluetooth enforcement is now disabled.${NC}"
-            BLUETOOTH_CONTROL="allow"
+            append_log "\n${GREEN}Invalid or no entry. Defaulting to enforce. Bluetooth enforcement is now enabled.${NC}"
+            BLUETOOTH_CONTROL="enforce"
         fi
     else
-        append_log "\n${GREEN}Timeout has expired. Defaulting to allow. Bluetooth enforcement is now disabled.${NC}"
-        BLUETOOTH_CONTROL="allow"
+        append_log "\n${GREEN}Timeout has expired. Defaulting to enforce. Bluetooth enforcement is now enabled.${NC}"
+        BLUETOOTH_CONTROL="enforce"
     fi
 
     echo "-------------------------------"
@@ -981,7 +993,7 @@ if [[ "$BTENFORCE_ACTIVE" == "true" ]]; then
             if [[ "$BLUETOOTH_CONTROL" == "allow" && $SAFARI_CONTROL == "allow" && $LOGIN_ITEM_CONTROL == "allow" ]]; then
 
                 # Change BTENFORCE_ACTIVE to false in the config file and exit.
-                sed -i '' "s|BTENFORCE_ACTIVE=".*"|BTENFORCE_ACTIVE="false"|" "$BTENFORCE_CONFIG"
+                sed -i '' 's|BTENFORCE_ACTIVE=".*"|BTENFORCE_ACTIVE="false"|' "$BTENFORCE_CONFIG"
                 append_log "All controls are set to allow. Changing BTENFORCE_ACTIVE to false and exiting."
                 exit 0
             fi
