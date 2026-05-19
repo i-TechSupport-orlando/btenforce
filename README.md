@@ -106,12 +106,14 @@ Most schools prefer students use Google Chrome due to the robust feature set des
 ## Jamf Pro Installation
 1. Upload `btenforce2.1.pkg` to Jamf Pro
 2. Upload `btenforce-postinstall.sh` to Jamf Pro
-3. Create a policy to install `btenforce2.1.pkg` and then run `btenforce-postinstall.sh` with the desired parameters.
+3. Upload `btenforce-pppc.mobileconfig` to Jamf Pro and scope to target devices
+4. Create a policy to install `btenforce2.1.pkg` and run `btenforce-postinstall.sh` with the desired parameters.
 
 ## Mosyle Installation
 1. Distribute the package to the target macOS devices
-2. Edit `btenforce-postinstall.sh` to comment out the Jamf Pro params and uncomment the Mosyle params
-3. Create a Mosyle custom command to run `btenforce-postinstall.sh` and scope to the endpoints that have received the package
+2. Edit `btenforce-postinstall.sh` to comment out the Jamf Pro params and uncomment the Mosyle params, or use the defaults
+3. Install `btenforce-pppc.mobileconfig` to the target macOS devices			
+4. Create a Mosyle custom command to run `btenforce-postinstall.sh` and scope to the endpoints that have received the package
 
 # Dependencies
 `blueutil` - https://github.com/toy/blueutil. The packaged release of btenforce contains `blueutil` version 2.9.
@@ -119,12 +121,10 @@ Most schools prefer students use Google Chrome due to the robust feature set des
 # Troubleshooting
 - Bluetooth is not turning back on: The most likely cause for this is that it's currently outside of the time window you set in the config file. Run `btenforce --debug` to test without time constraints. Another possible cause is that it's inside the time window but the daemon is not running. Use `sudo launchctl list | grep itech` to check if the daemon is running. If not, run `sudo launchctl bootstrap system /Library/LaunchDaemons/com.itech.btenforce.plist` to start it.
 - If the above is happening, the other features most likely are not working either since they are all controled via the same config file and daemon. Check `BTENFORCE_ACTIVE` in the config file and make sure it's set to `true`.
-- View the logs at `/var/log/btenforce.log`
+- View the logs at `/var/log/btenforce.log` or your custom log path.
 - You may also obtain the log entries from the Unified Log with `log show --predicate 'eventMessage contains "btenforce"' --info --debug`. When `btenforce` is called by the daemon, it will appear in the log in a format similar to:
 `launchd: [system/com.itech.btenforce [93638]:] Successfully spawned btenforce[93638] because interval`
-
-## Debugging
-`btenforce --debug` will run the script in debug mode. Debug mode will override the day of week and time of day restrictions and run the script as though school is always in session. You may modify the configuration on a single computer with `btenforce --configure`, manually by editing `/Library/Application Support/i-Tech/btenforce.env`, or by pushing out a new `.env` file using your MDM with `btenforce-postinstall.sh`. 
+- `btenforce --debug` will run the script in debug mode. Debug mode will override the day of week and time of day restrictions and run the script as though school is always in session. You may modify the configuration on a single computer with `btenforce --configure`, manually by editing `/Library/Application Support/i-Tech/btenforce.env`, or by pushing out a new `.env` file using your MDM with `btenforce-postinstall.sh`. 
 
 # Configuration Profile
 `btenforce` needs some PPPC permissions to function correctly. Install `btenforce-pppc.mobileconfig` to grant permissions to `blueutil`. Once the profile is installed, the daemon should be able to run `blueutil` as the end-user. YMMV. 
