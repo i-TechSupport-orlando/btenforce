@@ -35,6 +35,10 @@ A very simple launch daemon runs a script that checks if Bluetooth is turned off
 - Added trap for `ERR` signal to log the error message and exit.
 - Reduced unessential noise from logs when school is not in session by adding a flag file to prevent the script from logging on every execution.
 - Modified the shebang from `/bin/zsh` to `/bin/bash` for compatibility in the post-install script. since that will be most likely executed by an MDM and if Mosyle, must be Bash.
+- Added default config values so that btenforce will function without customizing the config. Only Bluetooth enforcement is activated by default. Configure with --configure for other options, or use the btenforce-postinstall.sh script to configure btenforce with your desired settings.
+- Added inactive flag to prevent needless logging while the daemon is disabled.
+- Added function to download & install the daemon plist if missing.
+- Corrected logic issue with the during_school_hours function.
 
 ### Blueutil version
 When macOS 26 was released, the latest versions of `blueutil` no longer worked with `btenforce`. The version that I've had the most luck with was version 2.9. I have included this version of blueutil in the package installer. The package copies the 2.9 binary to `/usr/local/share/blueutil` When `btenforce` is called, it checks whether `blueutil` exists in `/usr/local/bin/blueutil`. If it doesn't exist, it copies it from `/usr/local/share/blueutil` to `/usr/local/bin/blueutil`.
