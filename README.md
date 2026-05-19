@@ -12,7 +12,7 @@ A very simple launch daemon runs a script that checks if Bluetooth is turned off
 - Removed ANSI color coding from log messages.
 - Reduced the interval to 5 seconds.
 - Added logging to configuration function.
-- Prevents reconfiguring by standard users.
+- Prevents reconfiguring by standard users by forcing root access.
 - Cleaned up redundant login check.
 - Added log retention period to the configuration options.
 - Added function to append missing configuration variables to the config file. This was necessary because previous versions of `btenforce` may have been installed without the new variables.
@@ -27,9 +27,7 @@ A very simple launch daemon runs a script that checks if Bluetooth is turned off
 - Enhanced time entry and validation for the configuration function.
 - Added warning when configuring Safari function with `osascript` method on macOS.
 - Added the method used to configure `btenforce` to the config file along with the time and date of the configuration.
-- Reduced unessential noise from logs.
 - Added check for `BTENFORCE_ACTIVE` in config file and exit if not found.
-- Added i-Tech banner with support info.
 - Changed logic to continue if no user is logged on, then skip the controls and log the exit code.
 - Added trap for `INT` and `TERM` signals to log the exit code and exit.
 - Added trap for `ERR` signal to log the error message and exit.
