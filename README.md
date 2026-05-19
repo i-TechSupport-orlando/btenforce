@@ -88,14 +88,10 @@ Most schools prefer students use Google Chrome due to the robust feature set des
 `LOGIN_ITEM_CONTROL="enforce"` Deletes all user added login items. This prevents the students from loading software when the machine boots. This is a tactic used by students on managed macOS devices to launch software that is restricted by Jamf Pro. There's a delay between when the device boots and when Jamf Pro's software restrictions feature begins enforcing restricted software. Restricting login items prevents the students from launching software on the restricted list. If a student adds a login item, it is quickly deleted by `btenforce`.
 
 ## Daemon Status and Control
-- Check Daemon
-`sudo launchctl list | grep itech` A positive result will show something similar to `-  0   com.itech.btenforce`
-- Unload Daemon
-`sudo launchctl bootout system/com.itech.btenforce`
-- Load Daemon
-`sudo launchctl bootstrap system/Library/LaunchDaemons/com.itech.btenforce.plist`
-- Restart Daemon
-`sudo launchctl bootout system/com.itech.btenforce && sudo launchctl bootstrap system/Library/LaunchDaemons/com.itech.btenforce.plist`
+- Check Daemon:    `sudo launchctl list | grep itech` A positive result will show something similar to `-  0   com.itech.btenforce`
+- Unload Daemon:   `sudo launchctl bootout system/com.itech.btenforce`
+- Load Daemon:     `sudo launchctl bootstrap system /Library/LaunchDaemons/com.itech.btenforce.plist`
+- Restart Daemon:  `sudo launchctl bootout system/com.itech.btenforce && sudo launchctl bootstrap system /Library/LaunchDaemons/com.itech.btenforce.plist`
 
 # Installing `btenforce`
 
@@ -105,7 +101,7 @@ Most schools prefer students use Google Chrome due to the robust feature set des
 3. Copy `com.itech.btenforce.plist` to `/Library/LaunchDaemons`
 4. Copy `btenforce.env` to `/Library/Application Support/i-Tech/btenforce`
 5. Set ownership of the files to `root:wheel` and set permissions to prevent changes by students (`644`)
-6. Run `sudo launchctl bootstrap system/Library/LaunchDaemons/com.itech.btenforce.plist`
+6. Run `sudo launchctl bootstrap system /Library/LaunchDaemons/com.itech.btenforce.plist`
 
 ## Jamf Pro Installation
 1. Upload `btenforce2.1.pkg` to Jamf Pro
@@ -121,7 +117,7 @@ Most schools prefer students use Google Chrome due to the robust feature set des
 `blueutil` - https://github.com/toy/blueutil. The packaged release of btenforce contains `blueutil` version 2.9.
 
 # Troubleshooting
-- Bluetooth is not turning back on: The most likely cause for this is that it's currently outside of the time window you set in the config file. Run `btenforce --debug` to test without time constraints. Another possible cause is that it's inside the time window but the daemon is not running. Use `sudo launchctl list | grep itech` to check if the daemon is running. If not, run `sudo launchctl bootstrap system/Library/LaunchDaemons/com.itech.btenforce.plist` to start it.
+- Bluetooth is not turning back on: The most likely cause for this is that it's currently outside of the time window you set in the config file. Run `btenforce --debug` to test without time constraints. Another possible cause is that it's inside the time window but the daemon is not running. Use `sudo launchctl list | grep itech` to check if the daemon is running. If not, run `sudo launchctl bootstrap system /Library/LaunchDaemons/com.itech.btenforce.plist` to start it.
 - If the above is happening, the other features most likely are not working either since they are all controled via the same config file and daemon. Check `BTENFORCE_ACTIVE` in the config file and make sure it's set to `true`.
 - View the logs at `/var/log/btenforce.log`
 - You may also obtain the log entries from the Unified Log with `log show --predicate 'eventMessage contains "btenforce"' --info --debug`. When `btenforce` is called by the daemon, it will appear in the log in a format similar to:
@@ -133,7 +129,3 @@ Most schools prefer students use Google Chrome due to the robust feature set des
 # Configuration Profile
 `btenforce` needs some PPPC permissions to function correctly. Install `btenforce-pppc.mobileconfig` to grant permissions to `blueutil`. Once the profile is installed, the daemon should be able to run `blueutil` as the end-user. YMMV. 
 
-
-
-
-https://www.i-techsupport.com/educational-tech/
