@@ -54,7 +54,7 @@
 ##            - Modified the shebang from /bin/zsh to /bin/bash for compatibility in the post-install script since that will be most likely executed by an MDM and if Mosyle, must be Bash.
 ##            - Added default config values so that btenforce will function without customizing the config.
 ##              Only Bluetooth enforcement is activated by default. Configure with --configure for other options, or 
-##              use the btenforce-postinstall script to configure btenforce with your desired settings.
+##              use the btenforce-postinstall.sh script to configure btenforce with your desired settings.
 ##
 ## Author: Keith Myers
 ##
@@ -97,6 +97,7 @@ SCRIPT_PATH="${0:A}"
 EXIT_CODE="0"
 ACTIVE_USER="false"
 NW_FLAG="/Library/Application Support/i-Tech/btenforce.nw"
+INACTIVE_FLAG="/Library/Application Support/i-Tech/btenforce.ina"
 OVERRIDE_FLAG="/Library/Application Support/i-Tech/btenforce.ov"
 REPO="https://github.com/i-TechSupport-orlando/btenforce"
 
@@ -909,6 +910,13 @@ if [[ "$BTENFORCE_ACTIVE" == "true" ]]; then
         fi
     fi
 else
+    if [[ -f "$NW_FLAG" ]]; then
+        
+    fi
+    if [[ -f "$OVERRIDE_FLAG" ]]; then
+        rm "$OVERRIDE_FLAG"
+    fi
+    touch "$INACTIVE_FLAG"
     append_log "BTENFORCE_ACTIVE is not set to true. Exiting."
 fi
 
