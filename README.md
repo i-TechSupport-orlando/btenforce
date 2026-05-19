@@ -8,7 +8,7 @@ A very simple launch daemon runs a script that checks if Bluetooth is turned off
 ## Version 2.1 Changes
 - Abandoned the app bundle structure. The package installer places the main script in `/usr/local/bin/btenforce` and `blueutil` in `/usr/local/share/btenforce/blueutil`, and the daemon in `/Library/LaunchDaemons/com.itech.btenforce.plist`.
 - `btenforce` is now a combination of the Bluetooth utility plus other functions such as Safari control and login item control. See the config file for more information.
-- The included version of `blueutil` is version 9 due to some irregularities with newer versions on macOS 26.
+- The included version of `blueutil` is version 2.9 due to some irregularities with newer versions on macOS 26.
 - Removed ANSI color coding from log messages.
 - Reduced the interval to 5 seconds.
 - Added logging to configuration function.
@@ -126,7 +126,8 @@ Most schools prefer students use Google Chrome due to the robust feature set des
 ## Debugging
 `btenforce --debug` will run the script in debug mode. Debug mode will override the day of week and time of day restrictions and run the script as though it is always in session. You may modify the configuration on a single computer with `btenforce --configure`. 
 
-
+# Configuration Profile
+`btenforce` needs some PPPC permissions to function correctly. Install `btenforce-pppc.mobileconfig` to grant permissions to `blueutil`. Once the profile is installed, the daemon should be able to run `blueutil` as the end-user. YMMV. 
 
 
 
