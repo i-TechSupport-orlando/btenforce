@@ -430,10 +430,8 @@ fi
 # Check whether the daemon is running.
 daemon_status=$( launchctl list | grep "com.itech.btenforce" || true )
 
-# Already running. Unload and reload.
-if [[ -n "$daemon_status" ]]; then
-	launchctl bootout system/com.itech.btenforce
-	sleep 3
+# If the daemon isn't running, start it.
+if [[ -z "$daemon_status" ]]; then
 	launchctl bootstrap system "$PLIST"
 	sleep 3
 	daemon_status=$( launchctl list | grep "com.itech.btenforce" || true )
@@ -455,25 +453,7 @@ if [[ -n "$daemon_status" ]]; then
 		fi
 	fi
 else
-	append_log "Installing new LaunchDaemon..."
-fi
-
-# Start the daemon.
-launchctl bootstrap system "$PLIST"
-
-sleep 3
-
-daemon_status=$( launchctl list | grep "com.itech.btenforce" || true )
-
-if [[ -n "$daemon_status" ]]; then
-	append_log "LaunchDaemon installed and loaded."
-	enable_bluetooth
-	append_log "Finished installation"
+	append_log "Daemon is already running."
 	exit 0
-else
-	append_log "The daemon failed to start."
-	append_log "Full output: ${daemon_status}"
-	append_log "Installation failure."
-	exit 1
 fi
 
