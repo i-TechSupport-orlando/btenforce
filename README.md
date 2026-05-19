@@ -48,7 +48,7 @@ When macOS 26 was released, the latest versions of `blueutil` no longer worked w
 # Enable/disable the daemon (bool)
 BTENFORCE_ACTIVE="true"
 
-# Fully qualified domain name (string)
+# Fully qualified domain name. For future use. (string)
 BTENFORCE_DOMAIN="yourdomain.org"
 
 # Safari blocking option. 'enforce', 'allow' (string)
@@ -63,10 +63,10 @@ BLUETOOTH_CONTROL="enforce"
 # Login item control. 'enforce', 'allow' (string)
 LOGIN_ITEM_CONTROL="allow"
 
-# School start time in 24-hour clock. Format: HH:MM (string)
+# School start time in 24-hour clock. Format: HH:mm (string)
 BTENFORCE_START_TIME="07:00"
 
-# School stop time in 24-hour clock. Format: HH:MM (string)
+# School stop time in 24-hour clock. Format: HH:mm (string)
 BTENFORCE_STOP_TIME="15:00"
 
 # Log file path (string)
@@ -79,7 +79,7 @@ TIME_CONSTRAINT_OVERRIDE="false"
 LOG_RETENTION="$LOG_RETENTION"`
 ```
 ## Safari Prevention
-Most schools prefer students use Google Chrome due to the robust feature set designed spcificaly with schools in mind. The problem is macOS does not have an easy way to restrict its usage by end-users. `btenforce` effectively prevents Safari from being used because if the app is detected, it's killed. Hopefully Apple adds more robust web browser restrictions in a future version of macOS.
+Most schools prefer students use Google Chrome due to the robust feature set designed spcificaly with schools in mind. The problem is macOS does not have an easy way to restrict its usage by end-users. `btenforce` effectively prevents Safari from being used because if the app is detected, it's killed. Hopefully Apple adds more robust web browser restrictions in a future version of macOS. It's extremely effective, but ensure that `btenforce` is installed after anyworkflows that require Safari such as before Chrome (or another browser) is installed. `btenforce` should not be enabled early in the enrollment process with `$SAFARI_CONTROL` set to `enforce`.
 
 - osascript: This is the most accurate method as it will only alert to open Safari windows. This requires a config profile that I have yet to get working.
 - pgrep:     If osascript isn't possible due to a prompting the students to approve it, or you cannot create a PPPC profile, this is a good alternative. It will have some false positives though. `pgrep` is the default method used. If `$SAFARI_CONTROL` is set to `allow`, `$SAFARI_CONTROL_METHOD` will be ignored.
@@ -128,7 +128,7 @@ Most schools prefer students use Google Chrome due to the robust feature set des
 `launchd: [system/com.itech.btenforce [93638]:] Successfully spawned btenforce[93638] because interval`
 
 ## Debugging
-`btenforce --debug` will run the script in debug mode. Debug mode will override the day of week and time of day restrictions and run the script as though it is always in session. You may modify the configuration on a single computer with `btenforce --configure`. 
+`btenforce --debug` will run the script in debug mode. Debug mode will override the day of week and time of day restrictions and run the script as though school is always in session. You may modify the configuration on a single computer with `btenforce --configure`, manually by editing `/Library/Application Support/i-Tech/btenforce.env`, or by pushing out a new `.env` file using your MDM with `btenforce-postinstall.sh`. 
 
 # Configuration Profile
 `btenforce` needs some PPPC permissions to function correctly. Install `btenforce-pppc.mobileconfig` to grant permissions to `blueutil`. Once the profile is installed, the daemon should be able to run `blueutil` as the end-user. YMMV. 
