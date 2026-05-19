@@ -53,7 +53,7 @@
 ##            - Reduced unessential noise from logs when school is not in session by adding a flag file to prevent the script from logging on every execution.
 ##            - Modified the shebang from /bin/zsh to /bin/bash for compatibility in the post-install script since that will be most likely executed by an MDM and if Mosyle, must be Bash.
 ##
-## Author: Keith Myers | keith.myers@i-techsupport.com
+## Author: Keith Myers
 ##
 ## Since this script is called repeatedly, the config file formatting is extremely
 ## strict to prevent errors. Each variable is on its own line and is in the format
@@ -69,7 +69,7 @@
 ##
 ## LICENSE
 ## Copyright 2026, i-Tech Support Inc.
-## https://i-techsupport.com | info@i-techsupport.com | (407) 265-2000
+## https://i-techsupport.com | info@i-techsupport.com
 ##
 ## Permission is hereby granted, free of charge, to any person obtaining a copy of 
 ## this software and associated documentation files (the Software), to deal in 
@@ -228,9 +228,6 @@ configure_btenforce() {
     echo -e " ║ ${ORANGE}| |_____| |  __/ (__| | | | ${NC}║ "
     echo -e " ║ ${ORANGE}|_|     |_|\___|\___|_| |_| ${NC}║ "
     echo -e " ║                             ║ "
-    echo -e " ║ ▶︎ https://i-techsupport.com ║ "
-    echo -e " ║ ☎ (407) 265-2000 option: #1 ║ "
-    echo -e " ║ ✉ support@i-techsupport.com ║ "
     echo -e " ║ Author: Keith Myers, i-Tech ║ "
     echo -e " ║ (C) 2026 i-Tech Support Inc ║ "
     echo -e " ╚═════════════════════════════╝ "
@@ -501,9 +498,6 @@ configure_btenforce() {
 ## ║ | |_____| |  __/ (__| | | |  ║
 ## ║ |_|     |_|\___|\___|_| |_|  ║
 ## ║                              ║
-## ║ ▶︎ https://i-techsupport.com  ║
-## ║ ☎ (407) 265-2000 option: #1  ║
-## ║ ✉ support@i-techsupport.com  ║
 ## ║ Author: Keith Myers, i-Tech  ║
 ## ║ (C) 2026 i-Tech Support Inc  ║
 ## ╚══════════════════════════════╝
