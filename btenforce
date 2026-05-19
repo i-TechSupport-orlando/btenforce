@@ -101,9 +101,14 @@ VERSION="2.1"
 SCRIPT_PATH="${0:A}"
 EXIT_CODE="0"
 ACTIVE_USER="false"
-NW_FLAG="/Library/Application Support/i-Tech/btenforce.nw"
+
+# Status flags.
+NIGHTWKN_FLAG="/Library/Application Support/i-Tech/btenforce.nw"
 INACTIVE_FLAG="/Library/Application Support/i-Tech/btenforce.ina"
 OVERRIDE_FLAG="/Library/Application Support/i-Tech/btenforce.ov"
+NO_LOGIN_FLAG="/Library/Application Support/i-Tech/btenforce.nologin"
+
+# Git repository for update checks.
 REPO="https://github.com/i-TechSupport-orlando/btenforce"
 
 # Application configuration file.
@@ -119,25 +124,6 @@ BLUE=$'\033[1;34m'
 RED=$'\033[0;31m'
 ORANGE=$'\033[38;2;255;165;0m'
 NC=$'\033[0m' # No color
-
-# Username of the user currently logged on and their ID.
-loggedInUser=$( echo "show State:/Users/ConsoleUser" | scutil | awk '/Name :/ && ! /loginwindow/ { print $3 }' )
-if [[ -z "$loggedInUser" ]]; then
-	# Exit if no user is logged in. btenforce is user-facing.
-	append_log "No user logged in."
-	EXIT_CODE=1
-else
-	ACTIVE_USER="true"
-fi
-
-# Get the user ID of the logged-in user.
-uid=$( id -u "${loggedInUser}" )
-
-# If no user ID is found for the logged in user, log and change exit code.
-if [[ -z "$uid" ]]; then
-	append_log "No user ID found for user ${loggedInUser}. Exiting."
-	EXIT_CODE=1
-fi
 
 # Add the date and time stamp to the log file.
 append_log () {
@@ -163,6 +149,32 @@ append_log () {
     logger -i -t btenforce "$syslog_msg"
 }
 
+# Username of the user currently logged on and their ID.
+loggedInUser=$( echo "show State:/Users/ConsoleUser" | scutil | awk '/Name :/ && ! /loginwindow/ { print $3 }' )
+if [[ -z "$loggedInUser" ]]; then
+	# Exit if no user is logged in. btenforce is user-facing.
+	append_log "No user logged in."
+	EXIT_CODE=1
+else
+	ACTIVE_USER="true"
+
+    # Remove no login flag if it exists.
+    if [[ -f "$NO_LOGIN_FLAG" ]]; then
+        rm -f "$NO_LOGIN_FLAG"
+        append_log "No login flag removed. ${loggedInUser} logged on."
+    fi
+fi
+
+# Get the user ID of the logged-in user.
+uid=$( id -u "${loggedInUser}" )
+
+# If no user ID is found for the logged in user, log and change exit code.
+if [[ -z "$uid" ]]; then
+	append_log "No user ID found for user ${loggedInUser}. Exiting."
+	EXIT_CODE=1
+fi
+
+
 # Function to display debug information.
 debug_info() {
     append_log "BTENFORCE_CONFIG:         ${BTENFORCE_CONFIG}"
@@ -179,7 +191,7 @@ debug_info() {
     append_log "TIME_CONSTRAINT_OVERRIDE: ${TIME_CONSTRAINT_OVERRIDE}"
     
     local files_to_check log_size current_bt_status
-    files_to_check=("$NW_FLAG" "$INACTIVE_FLAG" "$OVERRIDE_FLAG" "$PLIST" "$BTENFORCE_CONFIG" "$BTENFORCE_LOG_FILE" "/usr/local/bin/blueutil")
+    files_to_check=("$NIGHTWKN_FLAG" "$INACTIVE_FLAG" "$OVERRIDE_FLAG" "$PLIST" "$BTENFORCE_CONFIG" "$BTENFORCE_LOG_FILE" "$NO_LOGIN_FLAG" "/usr/local/bin/blueutil")
     
     for file in "${files_to_check[@]}"; do
         if [[ -f "$file" ]]; then
@@ -690,17 +702,28 @@ download_daemon () {
                 append_log "Error: SHA256 checksum of downloaded daemon does not match expected checksum."
                 rm -f "$temp_file"
             else
-                mv "$temp_file" "$PLIST"
-                
-                if [[ $? -ne 0 ]]; then
+                if ! mv "$temp_file" "$PLIST"; then
                     append_log "Error: Could not move daemon to ${PLIST}."
                     rm -f "$temp_file"
                     return 1
                 fi
 
+                if chown root:wheel "$PLIST"; then
+                    append_log "Ownership of daemon changed to root:wheel."
+                else
+                    append_log "Failed to change ownership of daemon to root:wheel."
+                    return 1
+                fi
+
+                if chmod 644 "$PLIST"; then
+                    append_log "Permissions of daemon set to 644."
+                else
+                    append_log "Failed to set permissions of daemon to 644."
+                    return 1
+                fi
+
                 return 0
             fi
-
         else
             append_log "Error: Could not download daemon from GitHub on attempt ${attempt}. Retrying..."
         fi
@@ -715,22 +738,9 @@ download_daemon () {
 
 # Function to install the LaunchDaemon.
 install_daemon () {
+    
     if ! download_daemon; then
         append_log "Failed to download daemon."
-        return 1
-    fi
-
-    if chown root:wheel "$PLIST"; then
-        append_log "Ownership of daemon changed to root:wheel."
-    else
-        append_log "Failed to change ownership of daemon to root:wheel."
-        return 1
-    fi
-
-    if chmod 644 "$PLIST"; then
-        append_log "Permissions of daemon set to 644."
-    else
-        append_log "Failed to set permissions of daemon to 644."
         return 1
     fi
 
@@ -841,7 +851,7 @@ during_school_hours () {
         if [[ -f "$OVERRIDE_FLAG" ]]; then
             return 0
         else
-            touch "$OVERRIDE_FLAG"
+            set_flag "$OVERRIDE_FLAG"
             append_log "School hours are not being considered due to debug mode or time constraint override set to true. Created override flag."
             return 0
         fi
@@ -872,15 +882,8 @@ during_school_hours () {
     # Check if weekday (Mon–Fri) and time is between start and end
     if (( day_of_week >= 1 && day_of_week <= 5 )); then
         if (( current_total_minutes >= start_total_minutes && current_total_minutes < end_total_minutes )); then
-            rm -f "$NW_FLAG" 2>/dev/null
             return 0
         fi
-    fi
-
-    # Create flag file so it doesn't log on every execution when school is not in session.
-    if [[ ! -f "$NW_FLAG" ]]; then
-        append_log "Not during school hours. Creating flag file."
-        touch "$NW_FLAG"
     fi
     
     return 1
@@ -892,10 +895,10 @@ check_login_items () {
     tell application "System Events"
     count login items
     end tell
-    ')
+    ' 2>/dev/null)
         
-    if [[ "$login_item_count" -gt 0 ]]; then
-        runAsUser osascript -e 'tell application "System Events" to delete login items'
+    if [[ "$login_item_count" =~ ^[0-9]+$ ]] && [[ "$login_item_count" -gt 0 ]]; then
+        runAsUser osascript -e 'tell application "System Events" to delete login items' 2>/dev/null
         append_log "Removed ${login_item_count} login items for ${loggedInUser}"
     fi
 }
@@ -917,6 +920,33 @@ trapint() {
 
 	exit "$EXIT_CODE"
 }
+
+set_flag () {
+    local file="$1"
+
+    if [[ -z "$file" ]]; then
+        append_log "No file argument received in set_flag function."
+        return 1
+    fi
+
+    if ! touch "$file"; then
+        append_log "Could not create flag file: ${file}."
+        return 1
+    fi
+
+    if ! chmod 644 "$file"; then
+        append_log "Could not set permissions to 644: ${file}."
+        return 1
+    fi
+    
+    if ! chown root:wheel "$file"; then
+        append_log "Could not set ownership to root:wheel: ${file}."
+        return 1
+    fi
+    
+    return 0
+}
+
 
             
 
@@ -989,6 +1019,12 @@ if [[ "$BTENFORCE_ACTIVE" == "true" ]]; then
             fi
         fi
 
+        # Remove the night/weekend flag if it exists.
+        if [[ -f "$NIGHTWKN_FLAG" ]]; then
+            rm -f "$NIGHTWKN_FLAG"
+            append_log "Night/weekend flag removed. School hours."
+        fi
+
         if [[ "$ACTIVE_USER" == "true" ]]; then
             if [[ "$BLUETOOTH_CONTROL" == "allow" && $SAFARI_CONTROL == "allow" && $LOGIN_ITEM_CONTROL == "allow" ]]; then
 
@@ -1010,14 +1046,27 @@ if [[ "$BTENFORCE_ACTIVE" == "true" ]]; then
                 check_login_items
             fi
         else
-            append_log "No user logged in. Exiting."
-            exit "$EXIT_CODE"
+            # Check if no login flag exists, then create one if needed.
+            if [[ ! -f "$NO_LOGIN_FLAG" ]]; then
+                set_flag "$NO_LOGIN_FLAG"
+                append_log "Nobody is logged on. Created no login flag.."
+                exit "$EXIT_CODE"
+            else
+                # Exit without logging since the flag already exists. This prevents filling the logs when nobody is logged on.
+                exit "$EXIT_CODE"
+            fi
+        fi
+    else
+        # Create flag file so it doesn't log every execution when school is not in session.
+        if [[ ! -f "$NIGHTWKN_FLAG" ]]; then
+            set_flag "$NIGHTWKN_FLAG"
+            append_log "Not during school hours. Created night/weekend flag."
         fi
     fi
 else
     # Check if inactive flag exists. If not, create it.
     if [[ ! -f "$INACTIVE_FLAG" ]]; then
-        touch "$INACTIVE_FLAG"
+        set_flag "$INACTIVE_FLAG"
         append_log "BTENFORCE_ACTIVE is not set to true. Creating inactive flag. btenforce is now inactive."
         exit 0
     else
