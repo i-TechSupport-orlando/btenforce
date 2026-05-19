@@ -52,6 +52,9 @@
 ##            - Added trap for ERR signal to log the error message and exit.
 ##            - Reduced unessential noise from logs when school is not in session by adding a flag file to prevent the script from logging on every execution.
 ##            - Modified the shebang from /bin/zsh to /bin/bash for compatibility in the post-install script since that will be most likely executed by an MDM and if Mosyle, must be Bash.
+##            - Added default config values so that btenforce will function without customizing the config.
+##              Only Bluetooth enforcement is activated by default. Configure with --configure for other options, or 
+##              use the btenforce-postinstall script to configure btenforce with your desired settings.
 ##
 ## Author: Keith Myers
 ##
@@ -59,7 +62,7 @@
 ## strict to prevent errors. Each variable is on its own line and is in the format
 ## VARIABLE="value".
 ## 
-## This script is designed to be called by a daemon.
+## This script is designed to be called by a daemon for normal operation.
 ## It must be ran as root.
 ##
 ## macOS 26 and higher: Due to Apple's constraints on managing Bluetooth,
@@ -68,7 +71,7 @@
 ## must be answered with 'Allow' before the utility can be effective. 
 ##
 ## LICENSE
-## Copyright 2026, i-Tech Support Inc.
+## (C) 2026 i-Tech Support Inc.
 ## https://i-techsupport.com | info@i-techsupport.com
 ##
 ## Permission is hereby granted, free of charge, to any person obtaining a copy of 
@@ -101,7 +104,6 @@ REPO="https://github.com/i-TechSupport-orlando/btenforce"
 BTENFORCE_CONFIG="/Library/Application Support/i-Tech/btenforce.env"
 BTENFORCE_LOG_FILE="/var/log/btenforce.log"
 TODAY=$( date +%Y-%m-%d )
-
 PLIST="/Library/LaunchDaemons/com.itech.btenforce.plist"
 
 # Username of the user currently logged on and their ID.
@@ -127,7 +129,6 @@ fi
 append_log () {
     local message="$1"
     
-    # Strip ANSI color codes AND leading newlines for the log files.
     # The sed pipeline removes ANSI escape sequences and deletes the first line if it is empty.
     local clean_text="$( echo -e "$message" | sed 's/\x1b\[[0-9;]*m//g' | sed '1{/^$/d;}' )"
     
@@ -186,6 +187,7 @@ check_time_integer() {
     return 1
 }
 
+# Function to add a leading zero to the first digit in the time if missing.
 add_leading_zero() {
     local time="$1"
 	local time_array=(${(s/:/)time})
@@ -202,7 +204,6 @@ add_leading_zero() {
 
 	printf "%02d:%02d\n" "$hour" "$minute"
 }
-
 
 # Configuration function. Called with -configure argument.
 configure_btenforce() {
