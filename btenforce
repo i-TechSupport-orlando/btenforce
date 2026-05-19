@@ -55,6 +55,9 @@
 ##            - Added default config values so that btenforce will function without customizing the config.
 ##              Only Bluetooth enforcement is activated by default. Configure with --configure for other options, or 
 ##              use the btenforce-postinstall.sh script to configure btenforce with your desired settings.
+##            - Added inactive flag to prevent needless logging while the daemon is disabled.
+##            - Added function to download & install the daemon plist if missing.
+##            - Corrected logic issue with the during_school_hours function.
 ##
 ## Author: Keith Myers
 ##
@@ -70,26 +73,28 @@
 ## to the user asking for permission to allow Bluetooth control. This prompt
 ## must be answered with 'Allow' before the utility can be effective. 
 ##
-## LICENSE
-## (C) 2026 i-Tech Support Inc.
+## MIT License
+##
+## Copyright (c) 2026 i-Tech Support Inc.
 ## https://i-techsupport.com | info@i-techsupport.com
 ##
-## Permission is hereby granted, free of charge, to any person obtaining a copy of 
-## this software and associated documentation files (the Software), to deal in 
-## the Software without restriction, including without limitation the rights to use, 
-## copy, modify, or merge, the Software, and to permit persons to whom the Software is
+## Permission is hereby granted, free of charge, to any person obtaining a copy
+## of this software and associated documentation files (the "Software"), to deal
+## in the Software without restriction, including without limitation the rights
+## to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+## copies of the Software, and to permit persons to whom the Software is
 ## furnished to do so, subject to the following conditions:
 ##
-## The above copyright notice, URL, email address, and this permission notice shall be 
-## included in all copies or substantial portions of the Software.
+## The above copyright notice and this permission notice shall be included in all
+## copies or substantial portions of the Software.
 ##
-## THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, 
-## INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
-## PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE 
-## FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR 
-## OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
-## DEALINGS IN THE SOFTWARE.
-
+## THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+## IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+## FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+## AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+## LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+## OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+## SOFTWARE.
 ## ═══════════════════════════════════════════════════════════════════════════════════════ ##
 
 VERSION="2.1"
@@ -106,6 +111,15 @@ BTENFORCE_CONFIG="/Library/Application Support/i-Tech/btenforce.env"
 BTENFORCE_LOG_FILE="/var/log/btenforce.log"
 TODAY=$( date +%Y-%m-%d )
 PLIST="/Library/LaunchDaemons/com.itech.btenforce.plist"
+
+# Terminal color variables.
+YELLOW=$'\033[1;33m'
+GREEN=$'\033[0;32m'
+BLUE=$'\033[1;34m'
+RED=$'\033[0;31m'
+ORANGE=$'\033[38;2;255;165;0m'
+NC=$'\033[0m' # No color
+
 
 # Username of the user currently logged on and their ID.
 loggedInUser=$( echo "show State:/Users/ConsoleUser" | scutil | awk '/Name :/ && ! /loginwindow/ { print $3 }' )
@@ -164,6 +178,35 @@ debug_info() {
     append_log "loggedInUser:             ${loggedInUser}"
     append_log "User ID:                  ${uid}"
     append_log "TIME_CONSTRAINT_OVERRIDE: ${TIME_CONSTRAINT_OVERRIDE}"
+    
+    local files_to_check log_size current_bt_status
+    files_to_check=("$NW_FLAG" "$INACTIVE_FLAG" "$OVERRIDE_FLAG" "$PLIST" "$BTENFORCE_CONFIG" "$BTENFORCE_LOG_FILE" "/usr/local/bin/blueutil")
+    
+    for file in "${files_to_check[@]}"; do
+        if [[ -f "$file" ]]; then
+            append_log "  ${file} ${GREEN}exists${NC}"
+        else
+            append_log "  ${file} ${RED}does not exist${NC}"
+        fi
+    done
+
+    log_size=$( du -sh "$BTENFORCE_LOG_FILE" | awk '{ print $1 }' )
+    append_log "Log file size: ${log_size}"
+
+    export BLUEUTIL_ALLOW_ROOT=1
+
+    # Get current Bluetooth status
+    if [[ -x "/usr/local/bin/blueutil" ]]; then
+        if /usr/local/bin/blueutil -p; then
+            current_bt_status="${GREEN}enabled${NC}"
+        else
+            current_bt_status="${RED}disabled${NC}"
+        fi
+        append_log "Current Bluetooth status: ${current_bt_status}"
+    else
+        append_log "blueutil not found at /usr/local/bin/blueutil or it's not executable."
+    fi
+
 }
 
 # Function to validate that a time value is formatted correctly. 24-hour clock.
@@ -209,12 +252,6 @@ add_leading_zero() {
 # Configuration function. Called with -configure argument.
 configure_btenforce() {
     failed_items=0
-    YELLOW=$'\033[1;33m'
-    GREEN=$'\033[0;32m'
-    BLUE=$'\033[1;34m'
-    RED=$'\033[0;31m'
-    ORANGE=$'\033[38;2;255;165;0m'
-    NC=$'\033[0m' # No color
 
     clear
     local total_options=10
@@ -392,7 +429,7 @@ configure_btenforce() {
     echo "-------------------------------"
 
     (( option_number += 1 ))
-    # School start time in 24-hour clock. Hour only.
+    # School start time in 24-hour clock. HH:mm
     if read -t 600 "BTENFORCE_START_TIME?[${option_number}/${total_options}] Enter school start time (5 characters as in 07:00 or press ENTER for [${ORANGE}07:00${NC}]): "; then
         if [[ -z "$BTENFORCE_START_TIME" ]]; then
             append_log "${GREEN}Using default school start time of 07:00.${NC}"
@@ -416,7 +453,7 @@ configure_btenforce() {
     echo "-------------------------------"  
 
     (( option_number += 1 ))
-    # School stop time in 24-hour clock. Hour only.
+    # School stop time in 24-hour clock. HH:mm
     if read -t 600 "BTENFORCE_STOP_TIME?[${option_number}/${total_options}] Enter school stop time (5 characters as in 15:00 or press ENTER for [${ORANGE}15:00${NC}]): "; then
         if [[ -z "$BTENFORCE_STOP_TIME" ]]; then
             append_log "${GREEN}Using default school stop time of 15:00.${NC}"
@@ -577,7 +614,7 @@ fix_missing_vars () {
     fi
 }
 
-# Run a command as the logged in user.
+# Function to run a command as the logged in user.
 runAsUser() {
     # Recheck for logged in user before executing osascript in the event the user logs out between the initial check and this function call.
     loggedInUser=$( echo "show State:/Users/ConsoleUser" | scutil | awk '/Name :/ && ! /loginwindow/ { print $3 }' )
@@ -592,6 +629,7 @@ runAsUser() {
     launchctl asuser "$uid" sudo -u "$loggedInUser" "$@"
 }
 
+# Function to remove log files older than the retention period.
 prune_logs () {
     local retention="${1:-$LOG_RETENTION}"
     local log_file="${2:-$BTENFORCE_LOG_FILE}"
@@ -616,59 +654,98 @@ prune_logs () {
     fi
 }
 
-# Install the LaunchDaemon if it doesn't exist.
-install_daemon () {
-    local daemon_url
+# Download and install the LaunchDaemon if it doesn't exist.
+download_daemon () {
+    local daemon_url temp_file sha256 sha256_local
     daemon_url="https://raw.githubusercontent.com/i-TechSupport-orlando/btenforce/refs/heads/main/btenforce"
+    temp_file="/tmp/com.itech.btenforce.plist.new"
 
-    if [[ ! -f "$PLIST" ]]; then
-        if curl -fsSL "$daemon_url" -o "$PLIST"; then
-            if chown root:wheel "$PLIST"; then
-                append_log "Ownership of daemon changed to root:wheel."
+    # Get expected sha256 checksum.
+    sha256=$( curl -fsSL "$daemon_url" | shasum -a 256 | awk '{ print $1 }' )
+
+    if [[ -z "$sha256" ]] || [[ "${#sha256}" -ne 64 ]]; then
+        append_log "Error: Could not get sha256 checksum of daemon. Output: ${sha256}"
+        return 1
+    fi
+
+    local max_attempts=3
+    local attempt=1
+
+    while [[ "$attempt" -le "$max_attempts" ]]; do
+        if curl -fsSL "$daemon_url" -o "$temp_file"; then
+            sha256_local=$( shasum -a 256 "$temp_file" | awk '{ print $1 }' )
+
+            if [[ "$sha256_local" != "$sha256" ]]; then
+                append_log "Error: SHA256 checksum of downloaded daemon does not match expected checksum."
+                rm -f "$temp_file"
             else
-                append_log "Failed to change ownership of daemon to root:wheel."
-                return 1
+                mv "$temp_file" "$PLIST"
+                
+                if [[ $? -ne 0 ]]; then
+                    append_log "Error: Could not move daemon to ${PLIST}."
+                    rm -f "$temp_file"
+                    return 1
+                fi
+
+                return 0
             fi
 
-            if chmod 644 "$PLIST"; then
-                append_log "Permissions of daemon set to 644."
-            else
-                append_log "Failed to set permissions of daemon to 644."
-                return 1
-            fi
         else
-            append_log "Error: Could not download daemon from GitHub: ${daemon_url}"
-            append_log "Download manually from ${REPO}"
-            return 1
+            append_log "Error: Could not download daemon from GitHub on attempt ${attempt}. Retrying..."
         fi
 
-        append_log "Installing new LaunchDaemon..."
+        sleep 2
+        (( attempt += 1 ))
+    done
 
+    append_log "Error: Could not download daemon from GitHub after ${max_attempts} attempts."
+    return 1
+}
+
+# Function to install the LaunchDaemon.
+install_daemon () {
+    if ! download_daemon; then
+        append_log "Failed to download daemon."
+        return 1
+    fi
+
+    if chown root:wheel "$PLIST"; then
+        append_log "Ownership of daemon changed to root:wheel."
+    else
+        append_log "Failed to change ownership of daemon to root:wheel."
+        return 1
+    fi
+
+    if chmod 644 "$PLIST"; then
+        append_log "Permissions of daemon set to 644."
+    else
+        append_log "Failed to set permissions of daemon to 644."
+        return 1
+    fi
+
+    append_log "Starting new LaunchDaemon..."
+
+    launchctl bootstrap system "$PLIST"
+
+    sleep 2
+
+    daemon_status=$( launchctl list | grep "com.itech.btenforce" || true )
+
+    if [[ -n "$daemon_status" ]]; then
+        append_log "LaunchDaemon installed and loaded."
+        return 0
+    else
+        append_log "LaunchDaemon failed to start. Reattempting to bootstrap..."
         launchctl bootstrap system "$PLIST"
-
-        sleep 1
-
+        sleep 3
         daemon_status=$( launchctl list | grep "com.itech.btenforce" || true )
-
         if [[ -n "$daemon_status" ]]; then
             append_log "LaunchDaemon installed and loaded."
             return 0
         else
-            append_log "The daemon failed to start. Attempting to restart..."
-            launchctl bootstrap system "$PLIST"
-            sleep 2
-            daemon_status=$( launchctl list | grep "com.itech.btenforce" || true )
-            if [[ -n "$daemon_status" ]]; then
-                append_log "LaunchDaemon installed and loaded."
-                return 0
-            else
-                append_log "The daemon failed to start."
-                return 1
-            fi
+            append_log "LaunchDaemon failed to start."
+            return 1
         fi
-    else
-        append_log "LaunchDaemon already installed: ${PLIST}"
-        return 0
     fi
 }
 
@@ -749,15 +826,19 @@ return "false"
 
 # Check whether the current date/time is during regular school hours.
 during_school_hours () {
-    
-    if [[ ("$BTENFORCE_DEBUG_MODE" == "true" || "$TIME_CONSTRAINT_OVERRIDE" == "true") && ! -f "$OVERRIDE_FLAG" ]]; then
-        touch "$OVERRIDE_FLAG"
-        append_log "School hours are not being considered due to debug mode or time constraint override set to true. Created override flag."
-        return 0
-    elif [[ ("$BTENFORCE_DEBUG_MODE" == "false" || "$TIME_CONSTRAINT_OVERRIDE" == "false") && -f "$OVERRIDE_FLAG" ]]; then
-        rm -f "$OVERRIDE_FLAG"
-        append_log "School hours are now being considered. Removed override flag."
-        return 0
+    if [[ "$BTENFORCE_DEBUG_MODE" == "true" || "$TIME_CONSTRAINT_OVERRIDE" == "true" ]]; then
+        if [[ -f "$OVERRIDE_FLAG" ]]; then
+            return 0
+        else
+            touch "$OVERRIDE_FLAG"
+            append_log "School hours are not being considered due to debug mode or time constraint override set to true. Created override flag."
+            return 0
+        fi
+    else
+        if [[ -f "$OVERRIDE_FLAG" ]]; then
+            rm -f "$OVERRIDE_FLAG"
+            append_log "School hours are now being considered. Removed override flag."
+        fi
     fi
 
     # Get current time
@@ -794,8 +875,8 @@ during_school_hours () {
     return 1
 }
 
+# Check if any login items exist for the current user.
 check_login_items () {
-    # Check if any login items exist for the current user.
     login_item_count=$(runAsUser osascript -e '
     tell application "System Events"
     count login items
