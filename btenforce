@@ -881,6 +881,12 @@ fi
 # Check if the daemon is enabled.
 if [[ "$BTENFORCE_ACTIVE" == "true" ]]; then
 
+    # Check if inactive flag exists. If so, remove it.
+    if [[ -f "$INACTIVE_FLAG" ]]; then
+        rm -f "$INACTIVE_FLAG"
+        append_log "Inactive flag removed. btenforce is now active."
+    fi
+
     # Check the day and time, then perform actions if the current time is within the specified period.
     if during_school_hours; then
         
@@ -910,14 +916,15 @@ if [[ "$BTENFORCE_ACTIVE" == "true" ]]; then
         fi
     fi
 else
-    if [[ -f "$NW_FLAG" ]]; then
-        
+    # Check if inactive flag exists. If not, create it.
+    if [[ ! -f "$INACTIVE_FLAG" ]]; then
+        touch "$INACTIVE_FLAG"
+        append_log "BTENFORCE_ACTIVE is not set to true. Creating inactive flag. btenforce is now inactive."
+        exit 0
+    else
+        # Exit without logging since the flag already exists. This prevents filling the logs during downtime.
+        exit 0
     fi
-    if [[ -f "$OVERRIDE_FLAG" ]]; then
-        rm "$OVERRIDE_FLAG"
-    fi
-    touch "$INACTIVE_FLAG"
-    append_log "BTENFORCE_ACTIVE is not set to true. Exiting."
 fi
 
 exit 0
