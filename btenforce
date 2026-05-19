@@ -120,7 +120,6 @@ RED=$'\033[0;31m'
 ORANGE=$'\033[38;2;255;165;0m'
 NC=$'\033[0m' # No color
 
-
 # Username of the user currently logged on and their ID.
 loggedInUser=$( echo "show State:/Users/ConsoleUser" | scutil | awk '/Name :/ && ! /loginwindow/ { print $3 }' )
 if [[ -z "$loggedInUser" ]]; then
@@ -293,7 +292,7 @@ configure_btenforce() {
             BTENFORCE_ACTIVE="false"
             append_log "\n${RED}You indicated no. btenforce is now disabled.${NC}"
         else
-            append_log "\n${GREEN}Invalid entry. Defaulting to enable. btenforce is now enabled.${NC}"
+            append_log "\n${GREEN}Invalid or no entry. Defaulting to enable. btenforce is now enabled.${NC}"
             BTENFORCE_ACTIVE="true"
         fi
     else
@@ -312,7 +311,7 @@ configure_btenforce() {
             SAFARI_CONTROL="allow"
             append_log "\n${RED}You indicated no. Safari restrictions are now disabled.${NC}"
         else
-            append_log "\n${GREEN}Invalid entry. Defaulting to allow. Safari restrictions are now disabled.${NC}"
+            append_log "\n${GREEN}Invalid or no entry. Defaulting to allow. Safari restrictions are now disabled.${NC}"
             SAFARI_CONTROL="allow"
         fi
     else
@@ -332,7 +331,7 @@ configure_btenforce() {
             BLUETOOTH_CONTROL="allow"
             append_log "\n${RED}You indicated no. Bluetooth enforcement is now disabled.${NC}"
         else
-            append_log "\n${GREEN}Invalid entry. Defaulting to allow. Bluetooth enforcement is now disabled.${NC}"
+            append_log "\n${GREEN}Invalid or no entry. Defaulting to allow. Bluetooth enforcement is now disabled.${NC}"
             BLUETOOTH_CONTROL="allow"
         fi
     else
@@ -352,7 +351,7 @@ configure_btenforce() {
             LOGIN_ITEM_CONTROL="allow"
             append_log "\n${RED}You indicated no. Students will be able to save login items.${NC}"
         else
-            append_log "\n${GREEN}Invalid entry. Defaulting to allow. Students will be able to save login items.${NC}"
+            append_log "\n${GREEN}Invalid or no entry. Defaulting to allow. Students will be able to save login items.${NC}"
             LOGIN_ITEM_CONTROL="allow"
         fi
     else
@@ -372,7 +371,7 @@ configure_btenforce() {
             TIME_CONSTRAINT_OVERRIDE="false"
             append_log "\n${GREEN}You indicated no. Time constraint override is disabled. Student control enabled on nights and weekends.${NC}"
         else
-            append_log "\n${GREEN}Invalid entry. Defaulting to allow. Time constraint override is disabled.${NC}"
+            append_log "\n${GREEN}Invalid or no entry. Defaulting to allow. Time constraint override is disabled.${NC}"
             TIME_CONSTRAINT_OVERRIDE="false"
         fi
     else
@@ -419,7 +418,7 @@ configure_btenforce() {
             append_log "\n${GREEN}You indicated pgrep. Safari blocking method is pgrep.${NC}"
         else
             SAFARI_CONTROL_METHOD="pgrep"
-            append_log "\n${GREEN}Invalid entry. Defaulting to pgrep Safari blocking method.${NC}"
+            append_log "\n${GREEN}Invalid or no entry. Defaulting to pgrep Safari blocking method.${NC}"
         fi
     else
         append_log "\n${GREEN}Timeout has expired. Defaulting to pgrep Safari blocking method.${NC}"
@@ -657,7 +656,7 @@ prune_logs () {
 # Download and install the LaunchDaemon if it doesn't exist.
 download_daemon () {
     local daemon_url temp_file sha256 sha256_local
-    daemon_url="https://raw.githubusercontent.com/i-TechSupport-orlando/btenforce/refs/heads/main/btenforce"
+    daemon_url="https://raw.githubusercontent.com/i-TechSupport-orlando/btenforce/refs/heads/main/com.itech.btenforce.plist"
     temp_file="/tmp/com.itech.btenforce.plist.new"
 
     # Get expected sha256 checksum.
@@ -928,11 +927,11 @@ if [[ "$#" -ge 1 ]]; then
             ;;
             -debug)
                 BTENFORCE_DEBUG_MODE="true"
-                append_log "----- [ Debug Mode ]-----"
+                append_log "${YELLOW}----- [ Debug Mode ]-----${NC}"
                 shift
             ;;
             *)
-                append_log "Unknown option: $1"
+                append_log "${RED}Unknown option: $1${NC}"
                 shift
             ;;
         esac
@@ -979,7 +978,14 @@ if [[ "$BTENFORCE_ACTIVE" == "true" ]]; then
         fi
 
         if [[ "$ACTIVE_USER" == "true" ]]; then
-        
+            if [[ "$BLUETOOTH_CONTROL" == "allow" && $SAFARI_CONTROL == "allow" && $LOGIN_ITEM_CONTROL == "allow" ]]; then
+
+                # Change BTENFORCE_ACTIVE to false in the config file and exit.
+                sed -i '' "s|BTENFORCE_ACTIVE=".*"|BTENFORCE_ACTIVE="false"|" "$BTENFORCE_CONFIG"
+                append_log "All controls are set to allow. Changing BTENFORCE_ACTIVE to false and exiting."
+                exit 0
+            fi
+            
             if [[ "$BLUETOOTH_CONTROL" == "enforce" ]]; then
                 check_bluetooth
             fi
