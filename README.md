@@ -74,7 +74,7 @@ BTENFORCE_LOG_FILE="/var/log/btenforce.log"
 TIME_CONSTRAINT_OVERRIDE="false"
 
 # Log retention in days (int) Range: 7-1095
-LOG_RETENTION="$LOG_RETENTION"`
+LOG_RETENTION=180
 ```
 ## Daemon Status and Control
 - Check Daemon:    `sudo launchctl list | grep itech` A positive result will show something similar to `-  0   com.itech.btenforce`
