@@ -118,7 +118,7 @@ Most schools prefer students use Google Chrome due to the robust feature set des
 Create a smart group with the criteria of 'Application title has Google Chrome.app' to group computers that have Chrome installed, then create a software restriction for process name `Safari` and check the box labeled 'kill process'. Then, scope the software restriction to the smart group. `btenforce` will then detect if Safari is open and kill it, so if the student found a way around the software restriction, it will still be prevented.
 
 ## Mosyle Tip
-Migrate to Jamf Pro ;)
+Migrate to Jamf Pro ;-)
 
 # Delete Login Items
 `LOGIN_ITEM_CONTROL="enforce"` Deletes all user added login items. This prevents the students from loading software when the machine boots. This is a tactic used by students on managed macOS devices to launch software that is restricted by Jamf Pro. There's a delay between when the device boots and when Jamf Pro's software restrictions feature begins enforcing restricted software. Restricting login items prevents the students from launching software on the restricted list. If a student adds a login item, it is quickly deleted by `btenforce`.
