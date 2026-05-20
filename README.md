@@ -134,4 +134,4 @@ Migrate to Jamf Pro ;-)
 
 
 Copyright (c) 2026 i-Tech Support Inc.
-https://www.itechsupport.com | info@i-techsupport.com
+https://www.i-techsupport.com | info@i-techsupport.com
