@@ -101,6 +101,7 @@ VERSION="2.1"
 SCRIPT_PATH="${0:A}"
 EXIT_CODE="0"
 ACTIVE_USER="false"
+OVERWRITE_BLUEUTIL="false"
 
 # Status flags.
 NIGHTWKN_FLAG="/Library/Application Support/i-Tech/btenforce.nw"
@@ -606,9 +607,10 @@ EOF
     chmod 644 "$BTENFORCE_CONFIG"
     chown root:wheel "$BTENFORCE_CONFIG"
     
-    append_log "${GREEN}Configuration saved. Please review.\n${NC}"
     echo -e "${ORANGE}"
     cat "$BTENFORCE_CONFIG"
+    append_log "${GREEN}Configuration saved. Please review.\n${NC}"
+
     echo -e "${NC}"
 
     # Prompt whether to start from the beginning or exit.
@@ -648,8 +650,10 @@ runAsUser() {
 	    exit 0
     fi
 
+    uid=$( id -u "${loggedInUser}" 2>/dev/null ) || true
+
     # Execute the command sent to the function as the logged in user.
-    launchctl asuser "$uid" sudo -u "$loggedInUser" "$@"
+    launchctl asuser "$uid" sudo -u "$loggedInUser" "$@" || true
 }
 
 # Function to remove log files older than the retention period.
@@ -793,15 +797,18 @@ check_bluetooth () {
             return 1
         fi
     fi
-    
+
+    loggedInUser=$( echo "show State:/Users/ConsoleUser" | scutil | awk '/Name :/ && ! /loginwindow/ { print $3 }' )
+    uid=$( id -u "${loggedInUser}" 2>/dev/null ) || true
+
     # Required to run as root.
     export BLUEUTIL_ALLOW_ROOT=1
     
-    bstatus=$( runAsUser /usr/local/bin/blueutil -p )
+    bstatus=$( launchctl asuser "$uid" sudo -u "$loggedInUser" /usr/local/bin/blueutil -p )
     
     # If Bluetooth is off, turn it back on.
     if [[ "$bstatus" -eq 0 ]]; then
-        runAsUser /usr/local/bin/blueutil --power 1
+        launchctl asuser "$uid" sudo -u "$loggedInUser" /usr/local/bin/blueutil --power 1 2>/dev/null
         append_log "Reactivated Bluetooth. User: ${loggedInUser}"
     fi
 }
