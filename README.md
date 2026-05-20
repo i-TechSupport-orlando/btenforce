@@ -110,8 +110,15 @@ LOG_RETENTION="$LOG_RETENTION"`
 # Safari Prevention
 Most schools prefer students use Google Chrome due to the robust feature set designed spcificaly with schools in mind. The problem is macOS does not have an easy way to restrict its usage by end-users. `btenforce` effectively prevents Safari from being used because if the app is detected, it's killed. Hopefully Apple adds more robust web browser restrictions in a future version of macOS. It's extremely effective, but ensure that `btenforce` is installed after anyworkflows that require Safari such as before Chrome (or another browser) is installed. `btenforce` should not be enabled early in the enrollment process with `$SAFARI_CONTROL` set to `enforce`.
 
+## Safari Control Methods
 - osascript: This is the most accurate method as it will only alert to open Safari windows. This requires a config profile that I have yet to get working.
 - pgrep:     If osascript isn't possible due to a prompting the students to approve it, or you cannot create a PPPC profile, this is a good alternative. It will have some false positives though. `pgrep` is the default method used. If `$SAFARI_CONTROL` is set to `allow`, `$SAFARI_CONTROL_METHOD` will be ignored.
+
+## Jamf Pro Tip
+Create a smart group with the criteria of 'Application title has Google Chrome.app' to group computers that have Chrome installed, then create a software restriction for process name `Safari` and check the box labeled 'kill process'. Then, scope the software restriction to the smart group. `btenforce` will then detect if Safari is open and kill it, so if the student found a way around the software restriction, it will still be prevented.
+
+## Mosyle Tip
+Migrate to Jamf Pro ;)
 
 # Delete Login Items
 `LOGIN_ITEM_CONTROL="enforce"` Deletes all user added login items. This prevents the students from loading software when the machine boots. This is a tactic used by students on managed macOS devices to launch software that is restricted by Jamf Pro. There's a delay between when the device boots and when Jamf Pro's software restrictions feature begins enforcing restricted software. Restricting login items prevents the students from launching software on the restricted list. If a student adds a login item, it is quickly deleted by `btenforce`.
