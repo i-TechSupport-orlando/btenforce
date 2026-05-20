@@ -19,11 +19,9 @@ A very simple launch daemon runs a script that checks if Bluetooth is turned off
 - Added comprehensive configuration variable validation in post-install script.
 - Replaced deprecated `launchctl unload` / `launchctl load` with `bootout`/`bootstrap`.
 - Added version to `blueutil` on install/update for logging.
-- Added check for `blueutil` and then copy it from `/usr/local/share/btenforce/blueutil` if not found in `/usr/local/bin`. The package doesn't overwrite blueutil by default.
-- Added `MDM_TYPE` variable for clarity in config file.
+- Added check for `blueutil` and then copy it from `/usr/local/share/btenforce/blueutil` if not found in `/usr/local/bin`. The package doesn't overwrite `blueutil` in `/usr/local/bin` by default.
 - Added version to the log header in the config file for easy identification.
 - Refined configuration function for usability and convenience. It will now check for configuration errors in the config file and report them to the admin user that's configuring `btenforce`.
-- Added parameters to postinstall script for Jamf Pro MDM and Mosyle MDM. See the notes in the postinstall script for more information.
 - Enhanced time entry and validation for the configuration function.
 - Added warning when configuring Safari function with `osascript` method on macOS.
 - Added the method used to configure `btenforce` to the config file along with the time and date of the configuration.
@@ -31,10 +29,10 @@ A very simple launch daemon runs a script that checks if Bluetooth is turned off
 - Changed logic to continue if no user is logged on, then skip the controls and log the exit code.
 - Added trap for `INT` and `TERM` signals to log the exit code and exit.
 - Added trap for `ERR` signal to log the error message and exit.
-- Reduced unessential noise from logs when school is not in session by adding a flag file to prevent the script from logging on every execution.
+- Reduced unessential log entries when school is not in session by adding a flag file to prevent the script from logging on every execution.
 - Modified the shebang from `/bin/zsh` to `/bin/bash` for compatibility in the post-install script. since that will be most likely executed by an MDM and if Mosyle, must be Bash.
 - Added default config values so that btenforce will function without customizing the config. Only Bluetooth enforcement is activated by default. Configure with --configure for other options, or use the btenforce-postinstall.sh script to configure btenforce with your desired settings.
-- Added inactive flag to prevent needless logging while the daemon is disabled.
+- Added inactive flag to prevent needless logging while the daemon is disabled, the user is logged off, or during times outside of the configured school hours.
 - Added function to download & install the daemon plist if missing.
 - Corrected logic issue with the during_school_hours function.
 
