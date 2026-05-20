@@ -18,46 +18,25 @@ VERSION="2.1"
 SCRIPT_DIR="$( cd "$( dirname "$0" )" && pwd )"
 SCRIPT_PATH="${SCRIPT_DIR}/$(basename "$0")"
 
-# ======================================================================
-# Jamf Pro parameters. Comment this block out if running post install
-# script directly, using Mosyle or no MDM at all.
-#
+# ======================================
+# Jamf Pro parameters (positions 4 - 14)
+# ======================================
 BTENFORCE_ACTIVE="${4:-true}"
 BTENFORCE_START_TIME="${5}"
 BTENFORCE_STOP_TIME="${6}"
 BLUETOOTH_CONTROL="${7:-enforce}"
-SAFARI_CONTROL="${8:-enforce}"
+SAFARI_CONTROL="${8:-allow}"
 SAFARI_CONTROL_METHOD="${9:-pgrep}"
-BTENFORCE_DOMAIN="${10}"
-LOGIN_ITEM_CONTROL="${11:-enforce}"
-BTENFORCE_DEBUG_MODE="${12:-false}"
-BTENFORCE_LOG_FILE="${13:-/var/log/btenforce.log}"
-TIME_CONSTRAINT_OVERRIDE="${14:-false}"
-LOG_RETENTION="${15:-180}"
-MDM_TYPE="Jamf Pro"
-# ======================================================================
-
-
-# ======================================================================
-# Mosyle (or no MDM) parameters. Uncomment this block if using Mosyle
-# OR no MDM. Replace values as needed.
-#
-# BTENFORCE_ACTIVE="true"             # true or false
-# BTENFORCE_START_TIME="08:00"        # Start time in 24-hour format
-# BTENFORCE_STOP_TIME="15:30"         # Stop time in 24-hour format
-# BLUETOOTH_CONTROL="allow"           # allow or enforce
-# SAFARI_CONTROL="enforce"            # allow or enforce
-# SAFARI_CONTROL_METHOD="pgrep"       # osascript or pgrep
-# BTENFORCE_DOMAIN="<domain>"         # domain to enforce
-# LOGIN_ITEM_CONTROL="enforce"        # allow or enforce
-# BTENFORCE_DEBUG_MODE="false"        # true or false
-# BTENFORCE_LOG_FILE="/var/log/btenforce.log"
-# TIME_CONSTRAINT_OVERRIDE="false"    # true or false
-# LOG_RETENTION="180"                 # Integer number of days to keep log files
-# MDM_TYPE="Mosyle/Other"
-# =====================================================================
-
-# Do not edit below this line.
+BTENFORCE_DOMAIN="${10:-not_set}"
+LOGIN_ITEM_CONTROL="${11:-allow}"
+BTENFORCE_DEBUG_MODE="false"
+BTENFORCE_LOG_FILE="/var/log/btenforce.log"
+TIME_CONSTRAINT_OVERRIDE="false"
+LOG_RETENTION="180"
+# ======================================
+# If using Mosyle or another MDM, either adjust the parameters or
+# leave the default values as they are. 
+# ======================================
 
 # Add the date and time stamp to the log file.
 append_log () {
@@ -318,7 +297,7 @@ cat << EOF > "$BTENFORCE_CONFIG"
 ## ╚══════════════════════════════╝
 
 # Version: ${VERSION}
-# Configured on: $( date +"%Y-%m-%d %H:%M:%S" ) | via ${MDM_TYPE}
+# Configured on: $( date +"%Y-%m-%d %H:%M:%S" ) | via btenforce-postinstall.sh
 # Postinstall script path: "${SCRIPT_PATH}"
 
 # Enable/disable the daemon as a whole with 'true' or 'false'
