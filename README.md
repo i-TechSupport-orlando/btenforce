@@ -129,7 +129,7 @@ Migrate to Jamf Pro ;-)
 - View the logs at `/var/log/btenforce.log` or your custom log path.
 - You may also obtain the log entries from the Unified Log with `log show --predicate 'eventMessage contains "btenforce"' --info --debug`. When `btenforce` is called by the daemon, it will appear in the log in a format similar to:
 `launchd: [system/com.itech.btenforce [93638]:] Successfully spawned btenforce[93638] because interval`
-- `btenforce --debug` will run the script in debug mode. Debug mode will override the day of week and time of day restrictions and run the script as though school is always in session. You may modify the configuration on a single computer with `btenforce --configure`, manually by editing `/Library/Application Support/i-Tech/btenforce.env`, or by pushing out a new `.env` file using your MDM with `btenforce-postinstall.sh`. 
+- `btenforce --debug` will run the script in debug mode. Debug mode will override the day of week and time of day restrictions and run the script as though school is always in session. You may modify the configuration on a single computer with `btenforce -configure`, manually by editing `/Library/Application Support/i-Tech/btenforce.env`, or by pushing out a new `.env` file using your MDM with `btenforce-postinstall.sh`. 
 
 # Configuration Profile
 `btenforce` needs some PPPC permissions to function correctly. Install `btenforce-pppc.mobileconfig` to grant permissions to `blueutil`. Once the profile is installed, the daemon should be able to run `blueutil` as the end-user. YMMV. 
