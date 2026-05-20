@@ -313,9 +313,6 @@ cat << EOF > "$BTENFORCE_CONFIG"
 ## ║ | |_____| |  __/ (__| | | |  ║
 ## ║ |_|     |_|\___|\___|_| |_|  ║
 ## ║                              ║
-## ║ ▶︎ https://i-techsupport.com  ║
-## ║ ☎ (407) 265-2000 option: #1  ║
-## ║ ✉ support@i-techsupport.com  ║
 ## ║ Author: Keith Myers, i-Tech  ║
 ## ║ (C) 2026 i-Tech Support Inc  ║
 ## ╚══════════════════════════════╝
