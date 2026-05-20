@@ -70,10 +70,10 @@ BTENFORCE_STOP_TIME="15:00"
 # Log file path (string)
 BTENFORCE_LOG_FILE="/var/log/btenforce.log"
 
-# Time constraint override. (bool)
+# Time constraint override (enforce 24x7). (bool)
 TIME_CONSTRAINT_OVERRIDE="false"
 
-# Log retention in days (int) Range: 7-1095
+# Log retention in days. Range: 7-1095. (int)
 LOG_RETENTION=180
 ```
 ## Daemon Status and Control
@@ -125,7 +125,7 @@ Migrate to Jamf Pro ;-)
 
 # Troubleshooting
 - Bluetooth is not turning back on: Check that the current time is within the time window you set in the config file. Run `btenforce -debug` to test without time constraints. Another possible cause is that it's inside the time window but the daemon is not running. Use `sudo launchctl list | grep itech` to check if the daemon is running. If not, run `sudo launchctl bootstrap system /Library/LaunchDaemons/com.itech.btenforce.plist` to start it. Another possible reason is that the PPPC profile is not installed or the `blueutil` binary is not in the correct location. Check the install package receipt with `pkgutil --files /var/db/receipts/com.itech.btenforce.plist` to see if it was installed. If after it was installed the user clicked on "Don't Allow" for one of the prompts, you'll need to reinstall `btenforce`.
-- If Bluetooth isn't turning back on during school hours, the other features aren't working either. Check that `BTENFORCE_ACTIVE` is set to `true` in `/Library/Application Support/i-Tech/btenforce.env` or your custom env file location. Run `sudo launchctl bootout system/com.itech.btenforce` and `sudo launchctl bootstrap system /Library/LaunchDaemons/com.itech.btenforce.plist` to restart the daemon.
+- If Bluetooth isn't turning back on during school hours, the other features may not be working either if you activated them. Check that `BTENFORCE_ACTIVE` is set to `true` in `/Library/Application Support/i-Tech/btenforce.env` or your custom env file location. Run `sudo launchctl bootout system/com.itech.btenforce` and `sudo launchctl bootstrap system /Library/LaunchDaemons/com.itech.btenforce.plist` to restart the daemon.
 - View the logs at `/var/log/btenforce.log` or your custom log path.
 - You may also obtain the log entries from the Unified Log with `log show --predicate 'eventMessage contains "btenforce"' --info --debug`. When `btenforce` is called by the daemon, it will appear in the log in a format similar to:
 `launchd: [system/com.itech.btenforce [93638]:] Successfully spawned btenforce[93638] because interval`
