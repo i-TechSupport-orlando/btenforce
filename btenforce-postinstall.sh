@@ -22,17 +22,17 @@ SCRIPT_PATH="${SCRIPT_DIR}/$(basename "$0")"
 # Jamf Pro parameters (positions 4 - 14)
 # ======================================
 BTENFORCE_ACTIVE="${4:-true}"
-BTENFORCE_START_TIME="${5}"
-BTENFORCE_STOP_TIME="${6}"
+BTENFORCE_START_TIME="${5:-07:00}"
+BTENFORCE_STOP_TIME="${6:-15:00}"
 BLUETOOTH_CONTROL="${7:-enforce}"
 SAFARI_CONTROL="${8:-allow}"
 SAFARI_CONTROL_METHOD="${9:-pgrep}"
 BTENFORCE_DOMAIN="${10:-not_set}"
 LOGIN_ITEM_CONTROL="${11:-allow}"
-BTENFORCE_DEBUG_MODE="false"
 BTENFORCE_LOG_FILE="/var/log/btenforce.log"
 TIME_CONSTRAINT_OVERRIDE="false"
 LOG_RETENTION="180"
+BTENFORCE_INTERVAL="5"
 # ======================================
 # If using Mosyle or another MDM, either adjust the parameters or
 # leave the default values as they are. 
@@ -227,13 +227,13 @@ check_config_values() {
 }
 
 enable_bluetooth() {
-	if [[ ! -f "$butil" ]]; then
+	if [[ ! -f "$BLUEUTIL" ]]; then
 		if [[ -f /usr/local/share/blueutil ]]; then
-			cp "/usr/local/share/blueutil" "$butil"
-			chmod 755 "$butil"
-			chown root:wheel "$butil"
+			cp "/usr/local/share/blueutil" "$BLUEUTIL"
+			chmod 755 "$BLUEUTIL"
+			chown root:wheel "$BLUEUTIL"
 		else
-			append_log "Blueutil not found at either ${butil} or /usr/local/share/blueutil. Skipping turning on Bluetooth."
+			append_log "Blueutil not found at either ${BLUEUTIL} or /usr/local/share/blueutil. Skipping turning on Bluetooth."
 			return 1
 		fi
 	fi
@@ -244,9 +244,9 @@ enable_bluetooth() {
 		append_log "Either nobody is logged on, or the user ID could not be determined. Skipping turning on Bluetooth."
 	else
 		# Turn on Bluetooth for the logged in user to force the allow prompt.
-		launchctl asuser "$uid" sudo -u "$loggedInUser" "$butil" -p 0
+		launchctl asuser "$uid" sudo -u "$loggedInUser" "$BLUEUTIL" -p 0
 		sleep 1
-		launchctl asuser "$uid" sudo -u "$loggedInUser" "$butil" -p 1
+		launchctl asuser "$uid" sudo -u "$loggedInUser" "$BLUEUTIL" -p 1
 	fi
 	
 	return 0
@@ -258,7 +258,7 @@ BTENFORCE_CONFIG="${CONFIG_DIR}/btenforce.env"
 PLIST="/Library/LaunchDaemons/com.itech.btenforce.plist"
 
 btenforce="/usr/local/bin/btenforce"
-butil="/usr/local/bin/blueutil"
+BLUEUTIL="/usr/local/bin/blueutil"
 
 # Username of the user currently logged on and their ID.
 loggedInUser=$( echo "show State:/Users/ConsoleUser" | scutil | awk '/Name :/ && ! /loginwindow/ { print $3 }' )
@@ -303,6 +303,9 @@ cat << EOF > "$BTENFORCE_CONFIG"
 # Enable/disable the daemon as a whole with 'true' or 'false'
 BTENFORCE_ACTIVE="${BTENFORCE_ACTIVE}"
 
+# Interval between checks in seconds (1-3600).
+BTENFORCE_INTERVAL="${BTENFORCE_INTERVAL}"
+
 # School start time in 24-hour clock. (HH:MM).
 BTENFORCE_START_TIME="${BTENFORCE_START_TIME}"
 
@@ -323,9 +326,6 @@ BTENFORCE_DOMAIN="${BTENFORCE_DOMAIN}"
 
 # Safari blocking option. 'osascript', 'pgrep'
 SAFARI_CONTROL_METHOD="${SAFARI_CONTROL_METHOD}"
-
-# Debug mode
-BTENFORCE_DEBUG_MODE="${BTENFORCE_DEBUG_MODE}"
 
 # Log file path.
 BTENFORCE_LOG_FILE="${BTENFORCE_LOG_FILE}"
@@ -348,7 +348,6 @@ LOGIN_ITEM_CONTROL=""
 SAFARI_CONTROL=""
 BTENFORCE_DOMAIN=""
 SAFARI_CONTROL_METHOD=""
-BTENFORCE_DEBUG_MODE=""
 TIME_CONSTRAINT_OVERRIDE=""
 LOG_RETENTION=""
 append_log "Unset initial variables."
@@ -377,8 +376,8 @@ else
 fi
 
 # Check whether the source files exist.
-if [[ ! -x "$butil" ]]; then
-	append_log "WARNING: ${butil} is not executable or missing. Bluetooth control will not work."
+if [[ ! -x "$BLUEUTIL" ]]; then
+	append_log "WARNING: ${BLUEUTIL} is not executable or missing. Bluetooth control will not work."
 	append_log "Install blueutil from https://github.com/toy/blueutil to fix this."
 fi
 
@@ -400,7 +399,7 @@ else
 	# Turn on Bluetooth for the logged in user to force the allow prompt.
 	launchctl asuser "$uid" sudo -u "$loggedInUser" /usr/local/bin/blueutil -p 0
 	sleep 1
-	launchctl asuser "$uid" sudo -u "$loggedInUser" /usr/local/bin/blueutil -p 1
+	launchctl asuser "$uid" sudo -u "$loggedInUser" /usr/local/bin/blueutil -p 1 || true
 fi
 
 # Check whether the daemon is running.

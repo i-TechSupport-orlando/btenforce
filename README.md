@@ -132,6 +132,6 @@ Migrate to Jamf Pro ;-)
 # Configuration Profile
 `btenforce` needs some PPPC permissions to function correctly. Install `btenforce-pppc.mobileconfig` to grant permissions to `blueutil`. Once the profile is installed, the daemon should be able to run `blueutil` as the end-user. YMMV. It's a good idea to install `btenforce` during macOS enrollment so that you can click on "Allow" if prompted.
 
-
+---
 Copyright (c) 2026 i-Tech Support Inc.
 https://www.i-techsupport.com | info@i-techsupport.com
