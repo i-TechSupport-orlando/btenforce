@@ -951,7 +951,7 @@ check_bluetooth () {
     
     # If Bluetooth is off, turn it back on.
     if [[ "$bstatus" -eq 0 ]]; then
-        launchctl asuser "$uid" sudo -u "$loggedInUser" "$BLUEUTIL" --power 1 2>/dev/null
+        launchctl asuser "$uid" sudo -u "$loggedInUser" "$BLUEUTIL" --power 1 2>/dev/null || true
         append_log "Reactivated Bluetooth. User: ${loggedInUser}"
     fi
 }

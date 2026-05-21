@@ -123,6 +123,24 @@
 						<key>Allowed</key>
 						<true/>
 						<key>CodeRequirement</key>
+						<string>identifier "com.apple.sshd-keygen-wrapper" and anchor apple</string>
+						<key>Identifier</key>
+						<string>/usr/libexec/sshd-keygen-wrapper</string>
+						<key>IdentifierType</key>
+						<string>path</string>
+						<key>StaticCode</key>
+						<false/>
+					</dict>
+					<dict>
+						<key>AEReceiverCodeRequirement</key>
+						<string>identifier "com.apple.systemevents" and anchor apple</string>
+						<key>AEReceiverIdentifier</key>
+						<string>com.apple.systemevents</string>
+						<key>AEReceiverIdentifierType</key>
+						<string>bundleID</string>
+						<key>Allowed</key>
+						<true/>
+						<key>CodeRequirement</key>
 						<string>identifier "com.apple.osascript" and anchor apple</string>
 						<key>Identifier</key>
 						<string>/usr/bin/osascript</string>
@@ -168,7 +186,7 @@
 						<key>Allowed</key>
 						<true/>
 						<key>CodeRequirement</key>
-						<string>identifier "/usr/local/bin/blueutil" and anchor apple generic</string>
+						<string>identifier "com.itech.blueutil" and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = Y2C69WKV7M</string>
 						<key>Identifier</key>
 						<string>/usr/local/bin/blueutil</string>
 						<key>IdentifierType</key>
@@ -229,7 +247,7 @@
 		</dict>
 	</array>
 	<key>PayloadDescription</key>
-	<string></string>
+	<string>Config profile for btenforce</string>
 	<key>PayloadDisplayName</key>
 	<string>btenforce PPPC</string>
 	<key>PayloadIdentifier</key>
@@ -246,7 +264,5 @@
 	<string>C0B53054-294F-4999-91FC-188E7C4A67F5</string>
 	<key>PayloadVersion</key>
 	<integer>1</integer>
-	<key>TargetDeviceType</key>
-	<integer>5</integer>
 </dict>
 </plist>

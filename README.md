@@ -35,6 +35,7 @@ A very simple launch daemon runs a script that checks if Bluetooth is turned off
 - Added inactive flag to prevent needless logging while the daemon is disabled, the user is logged off, or during times outside of the configured school hours.
 - Added function to download & install the daemon plist if missing.
 - Corrected logic issue with the during_school_hours function.
+- Added an option to adjust the interval in which `btenforce` runs.
 
 ### Blueutil version
 When macOS 26 was released, the latest versions of `blueutil` no longer worked with `btenforce`. The version that I've had the most luck with was version 2.9. I have included this version of blueutil in the package installer. The package copies the 2.9 binary to `/usr/local/share/blueutil` When `btenforce` is called, it checks whether `blueutil` exists in `/usr/local/bin/blueutil`. If it doesn't exist, it copies it from `/usr/local/share/blueutil` to `/usr/local/bin/blueutil`.
@@ -97,13 +98,13 @@ LOG_RETENTION="180"
 ## Jamf Pro Installation
 1. Upload `btenforce-pppc.mobileconfig` to Jamf Pro and scope to target devices
 2. Upload `btenforce2.1.pkg` to Jamf Pro
-3. Upload `btenforce-postinstall.sh` to Jamf Pro
+3. Upload `btenforce-postinstall.sh` to Jamf Pro and configure the desired options
 4. Create a policy to install `btenforce2.1.pkg` and run `btenforce-postinstall.sh` with the desired parameters.
 
 ## Mosyle Installation
 1. Install `btenforce-pppc.mobileconfig` to the target macOS devices			
-2. Distribute the package to the target macOS devices
-3. Edit `btenforce-postinstall.sh` to comment out the Jamf Pro params and uncomment the Mosyle params, or use the defaults
+2. Distribute `btenforce2.1.pkg` to the target macOS devices
+3. Edit `btenforce-postinstall.sh` to comment out the Jamf Pro parameters or use the defaults
 4. Create a Mosyle custom command to run `btenforce-postinstall.sh` and scope to the endpoints that have received the package
 
 # Dependencies
