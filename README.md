@@ -41,38 +41,42 @@ When macOS 26 was released, the latest versions of `blueutil` no longer worked w
 
 ## Configuration variables and default values
 ```bash
-# Enable/disable the daemon (bool)
-BTENFORCE_ACTIVE="true"
+# Enable/disable the daemon as a whole ('true' or 'false')
+BTENFORCE_ACTIVE=true
 
-# Fully qualified domain name. For future use. (string)
-BTENFORCE_DOMAIN="yourdomain.org"
+# Interval between checks in seconds (1-3600)
+BTENFORCE_INTERVAL="5"
 
-# Safari blocking option. 'enforce', 'allow' (string)
-SAFARI_CONTROL="allow"
-
-# Safari blocking method. 'osascript', 'pgrep' (string)
-SAFARI_CONTROL_METHOD="pgrep"
-
-# Bluetooth blocking option. 'enforce', 'allow' (string)
-BLUETOOTH_CONTROL="enforce"
-
-# Login item control. 'enforce', 'allow' (string)
-LOGIN_ITEM_CONTROL="allow"
-
-# School start time in 24-hour clock. Format: HH:mm (string)
+# School start time in 24-hour clock. (HH:mm)
 BTENFORCE_START_TIME="07:00"
 
-# School stop time in 24-hour clock. Format: HH:mm (string)
+# School stop time in 24-hour clock (HH:mm)
 BTENFORCE_STOP_TIME="15:00"
 
-# Log file path (string)
+# Bluetooth option ('enforce' or 'allow')
+BLUETOOTH_CONTROL="enforce"
+
+# Login item controls ('enforce' or 'allow')
+LOGIN_ITEM_CONTROL="allow"
+
+# Safari option ('enforce' or 'allow')
+SAFARI_CONTROL="allow"
+
+# Email domain
+BTENFORCE_DOMAIN="yourdomain.com"
+
+# Safari blocking option ('osascript', 'pgrep')
+SAFARI_CONTROL_METHOD="pgrep"
+
+# Log file path
 BTENFORCE_LOG_FILE="/var/log/btenforce.log"
 
-# Time constraint override (enforce 24x7). (bool)
+# Time constraint override
 TIME_CONSTRAINT_OVERRIDE="false"
 
-# Log retention in days. Range: 7-1095. (int)
-LOG_RETENTION=180
+# Log retention in days
+LOG_RETENTION="180"
+
 ```
 ## Daemon Status and Control
 - Check Daemon:    `sudo launchctl list | grep itech` A positive result will show something similar to `-  0   com.itech.btenforce`
@@ -109,7 +113,7 @@ LOG_RETENTION=180
 Most schools prefer students use Google Chrome due to the robust feature set designed spcificaly with schools in mind. The problem is macOS does not have an easy way to restrict its usage by end-users. `btenforce` effectively prevents Safari from being used because if the app is detected, it's killed. Hopefully Apple adds more robust web browser restrictions in a future version of macOS. It's extremely effective, but ensure that `btenforce` is installed after anyworkflows that require Safari such as before Chrome (or another browser) is installed. `btenforce` should not be enabled early in the enrollment process with `$SAFARI_CONTROL` set to `enforce`.
 
 ## Safari Control Methods
-- osascript: This is the most accurate method as it will only alert to open Safari windows. This requires a config profile that I have yet to get working.
+- osascript: This is the most accurate method as it will only alert to open Safari windows. This requires you to install the config profile `btenforce PPPC.mobileconfig`.
 - pgrep:     If osascript isn't possible due to a prompting the students to approve it, or you cannot create a PPPC profile, this is a good alternative. It will have some false positives though. `pgrep` is the default method used. If `$SAFARI_CONTROL` is set to `allow`, `$SAFARI_CONTROL_METHOD` will be ignored.
 
 ## Jamf Pro Tip
