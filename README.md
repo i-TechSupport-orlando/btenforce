@@ -9,44 +9,8 @@ A very simple launch daemon runs a script that checks if Bluetooth is turned off
 When macOS 26 was released, the latest versions of `blueutil` no longer worked with `btenforce`. This was due to a change in how the blueutil binary interacted with macOS. Version 2.9 seems to be less prone to error, so this version is included in the `btenforce` package. When `btenforce` is called, it checks whether `blueutil` exists in `/usr/local/bin/blueutil`. If it doesn't exist, it copies the binary to `/usr/local/bin/blueutil`. If it does exist, you can modify the post-install option `OVERWRITE_BLUEUTIL` to `true`. It will then back up the original `blueutil` and copy the 2.9 binary to `/usr/local/bin/blueutil`.
 
 ## Configuration variables and default values
-```bash
-# Enable/disable the daemon as a whole ('true' or 'false')
-BTENFORCE_ACTIVE=true
+See `btenforce.env`
 
-# Interval between checks in seconds (1-3600)
-BTENFORCE_INTERVAL="5"
-
-# School start time in 24-hour clock. (HH:mm)
-BTENFORCE_START_TIME="07:00"
-
-# School stop time in 24-hour clock (HH:mm)
-BTENFORCE_STOP_TIME="15:00"
-
-# Bluetooth option ('enforce' or 'allow')
-BLUETOOTH_CONTROL="enforce"
-
-# Login item controls ('enforce' or 'allow')
-LOGIN_ITEM_CONTROL="allow"
-
-# Safari option ('enforce' or 'allow')
-SAFARI_CONTROL="allow"
-
-# Email domain
-BTENFORCE_DOMAIN="yourdomain.com"
-
-# Safari blocking option ('osascript', 'pgrep')
-SAFARI_CONTROL_METHOD="pgrep"
-
-# Log directory path
-BTENFORCE_LOG_DIR="/var/log/btenforce"
-
-# Time constraint override
-TIME_CONSTRAINT_OVERRIDE="false"
-
-# Log retention in days
-LOG_RETENTION="180"
-
-```
 ## Daemon Status and Control
 - Check Daemon:        `sudo launchctl list | grep itech` A positive result will show something similar to `-  0   com.itech.btenforce`
 - Unload Daemon:       `sudo launchctl bootout system/com.itech.btenforce`
