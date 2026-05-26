@@ -5,38 +5,6 @@ Students love to turn Bluetooth off in an effort to thwart classroom monitoring 
 
 A very simple launch daemon runs a script that checks if Bluetooth is turned off.  If it's off, the script turns it back on. Setting the launch daemon to a 5 second interval seems to work the best. This is controlled with the `BTENFORCE_INTERVAL` variable in the config file.
  
-## Version 2.1 Changes
-- Abandoned the app bundle structure. The package installer places the main script in `/usr/local/bin/btenforce` and `blueutil` in `/usr/local/share/btenforce/blueutil`, and the daemon in `/Library/LaunchDaemons/com.itech.btenforce.plist`.
-- `btenforce` is now a combination of the Bluetooth utility plus other functions such as Safari control and login item control. See the config file for more information.
-- The included version of `blueutil` is version 2.9 due to some irregularities with newer versions on macOS 26.
-- Removed ANSI color coding from log messages.
-- Reduced the interval to 5 seconds.
-- Added logging to configuration function.
-- Prevents reconfiguring by standard users by forcing root access.
-- Cleaned up redundant login check.
-- Added log retention period to the configuration options.
-- Added function to append missing configuration variables to the config file. This was necessary because previous versions of `btenforce` may have been installed without the new variables.
-- Added comprehensive configuration variable validation in post-install script.
-- Replaced deprecated `launchctl unload` / `launchctl load` with `bootout`/`bootstrap`.
-- Added version to `blueutil` on install/update for logging.
-- Added check for `blueutil` and then copy it from `/usr/local/share/btenforce/blueutil` if not found in `/usr/local/bin`. The package doesn't overwrite `blueutil` in `/usr/local/bin` by default.
-- Added version to the log header in the config file for easy identification.
-- Refined configuration function for usability and convenience. It will now check for configuration errors in the config file and report them to the admin user that's configuring `btenforce`.
-- Enhanced time entry and validation for the configuration function.
-- Added warning when configuring Safari function with `osascript` method on macOS.
-- Added the method used to configure `btenforce` to the config file along with the time and date of the configuration.
-- Added check for `BTENFORCE_ACTIVE` in config file and exit if not found.
-- Changed logic to continue if no user is logged on, then skip the controls and log the exit code.
-- Added trap for `INT` and `TERM` signals to log the exit code and exit.
-- Added trap for `ERR` signal to log the error message and exit.
-- Reduced unessential log entries when school is not in session by adding a flag file to prevent the script from logging on every execution.
-- Modified the shebang from `/bin/zsh` to `/bin/bash` for compatibility in the post-install script. since that will be most likely executed by an MDM and if Mosyle, must be Bash.
-- Added default config values so that btenforce will function without customizing the config. Only Bluetooth enforcement is activated by default. Configure with --configure for other options, or use the btenforce-postinstall.sh script to configure btenforce with your desired settings.
-- Added inactive flag to prevent needless logging while the daemon is disabled, the user is logged off, or during times outside of the configured school hours.
-- Added function to download & install the daemon plist if missing.
-- Corrected logic issue with the during_school_hours function.
-- Added an option to adjust the interval in which `btenforce` runs.
-
 ### Blueutil version
 When macOS 26 was released, the latest versions of `blueutil` no longer worked with `btenforce`. The version that I've had the most luck with was version 2.9. I have included this version of blueutil in the package installer. The package copies the 2.9 binary to `/usr/local/share/blueutil` When `btenforce` is called, it checks whether `blueutil` exists in `/usr/local/bin/blueutil`. If it doesn't exist, it copies it from `/usr/local/share/blueutil` to `/usr/local/bin/blueutil`.
 
