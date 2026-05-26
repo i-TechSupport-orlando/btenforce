@@ -1,7 +1,7 @@
 # btenforce for macOS
 Tested on macOS 13, 14, 15, and 26
 
-Students love to turn Bluetooth off in an effort to thwart classroom monitoring tools. You cannot force Bluetooth to be on with an MDM profile because it then prevents the end-user from connecting peripherals. Also, if Bluetooth is off at the time you install the profile, the end-user will be unable to turn it back on.
+Preventing students from disabling Bluetooth in an effort to thwart classroom monitoring tools is a challenge. You cannot force Bluetooth to be on with an MDM profile because it then prevents the end-user from connecting peripherals. Also, if Bluetooth is off at the time you install the profile, the end-user will be unable to turn it back on.
 
 A very simple launch daemon runs a script that checks if Bluetooth is turned off.  If it's off, the script turns it back on. Setting the launch daemon to a 5 second interval seems to work the best. This is controlled with the `BTENFORCE_INTERVAL` variable in the config file.
  
@@ -12,11 +12,9 @@ When macOS 26 was released, the latest versions of `blueutil` no longer worked w
 See `btenforce.env`
 
 ## Daemon Status and Control
-- Check Daemon:        `sudo launchctl list | grep itech` A positive result will show something similar to `-  0   com.itech.btenforce`
+- Check Daemon:        `sudo launchctl list | grep itech` A positive result will show something similar to `<PID>  0   com.itech.btenforce`
 - Unload Daemon:       `sudo launchctl bootout system/com.itech.btenforce`
-- Load Daemon:         `sudo launchctl bootstrap system /Library/LaunchDaemons/com.itech.btenforce.plist`
-- Restart Daemon:      `sudo launchctl bootout system/com.itech.btenforce && sudo launchctl bootstrap system /Library/LaunchDaemons/com.itech.btenforce.plist`
-- Print Daemon Stats:  `sudo launchctl print system/com.itech.btenforce`
+- Start Daemon:        `sudo launchctl bootstrap system /Library/LaunchDaemons/com.itech.btenforce.plist`
 
 # Installing `btenforce`
 
@@ -29,17 +27,11 @@ See `btenforce.env`
 6. Set ownership of the files to `root:wheel` and set permissions to prevent changes by students (`644`)
 7. Run `sudo launchctl bootstrap system /Library/LaunchDaemons/com.itech.btenforce.plist`
 
-## Jamf Pro Installation
-1. Upload `btenforce-pppc.mobileconfig` to Jamf Pro and scope to target devices
-2. Upload `btenforce2.2.1.pkg` to Jamf Pro
-3. Upload `btenforce-postinstall.sh` to Jamf Pro and configure the desired options
+## MDM Installation
+1. Install `btenforce-pppc.mobileconfig` on the target devices
+2. Upload `btenforce2.2.1.pkg` to your MDM or other distribution point
+3. Upload `btenforce-postinstall.sh` to your MDM and configure the desired options
 4. Create a policy to install `btenforce2.2.1.pkg` and run `btenforce-postinstall.sh` with the desired parameters.
-
-## Mosyle Installation
-1. Install `btenforce-pppc.mobileconfig` to the target macOS devices			
-2. Distribute `btenforce2.2.1.pkg` to the target macOS devices
-3. Edit `btenforce-postinstall.sh` to comment out the Jamf Pro parameters or use the defaults
-4. Create a Mosyle custom command to run `btenforce-postinstall.sh` and scope to the endpoints that have received the package
 
 # Dependencies
 `blueutil` - https://github.com/toy/blueutil. The packaged release of btenforce contains `blueutil` version 2.9. Blueutil was originally written by Frederik Seiffert <ego@frederikseiffert.de>. Copyright (c) 2011-2025 Ivan Kuchin.
@@ -58,20 +50,20 @@ Create a smart group with the criteria of 'Application title has Google Chrome.a
 Migrate to Jamf Pro ;-)
 
 # Delete Login Items
-`LOGIN_ITEM_CONTROL="enforce"` Deletes all user added login items. This prevents the students from loading software when the machine boots. This is a tactic used by students on managed macOS devices to launch software that is restricted by Jamf Pro. There's a delay between when the Mac boots and when Jamf Pro's software restrictions feature begins enforcing restricted software. Restricting login items prevents the students from launching software on the restricted list. If a student adds a login item, it is deleted by `btenforce` according to the `BTENFORCE_INTERVAL` that is set.
+`LOGIN_ITEM_CONTROL="enforce"` Deletes all user added login items. This prevents students from loading software when the machine boots. This is a tactic used by students on managed macOS devices to launch software that is restricted by Jamf Pro. There's a delay between when the Mac boots and when Jamf Pro's software restrictions take effect. Restricting login items prevents the students from launching software on the restricted list. If a student adds a login item, it is deleted by `btenforce` according to the `BTENFORCE_INTERVAL` that is set.
 
 # Troubleshooting
-- Bluetooth is not turning back on: Check that the current day & time is within the time window you set in the config file. Run `btenforce -debug` to test without time constraints. Another possible cause is that it's inside the time window but the daemon is not running. Use `sudo launchctl list | grep itech` to check if the daemon is running. If not, run `sudo launchctl bootstrap system /Library/LaunchDaemons/com.itech.btenforce.plist` to start it. Another possible reason is that the PPPC profile is not installed or the `blueutil` binary is not in the correct location. Check the install package receipt with `pkgutil --files /var/db/receipts/com.itech.btenforce.plist` to see if it was installed. If after it was installed the user clicked on "Don't Allow" for one of the prompts, you'll need to reinstall `btenforce`.
+- Bluetooth is not turning back on: Check that the current day & time is within the time window you set in the config file. Run `btenforce -debug` to test without time constraints. Another possible cause is that it's inside the time window but the daemon is not running. Use `sudo launchctl list | grep itech` to check if the daemon is running. If not, run `sudo launchctl bootstrap system /Library/LaunchDaemons/com.itech.btenforce.plist` to start it. 
+- Another possible reason is that the PPPC profile is not installed or the `blueutil` binary is not in the correct location. If after it was installed the user clicked on "Don't Allow" for one of the prompts, you'll need to reinstall `btenforce`.
 - If Bluetooth isn't turning back on during school hours, the other features may not be working either if you activated them. Check that `BTENFORCE_ACTIVE` is set to `true` in `/Library/Application Support/i-Tech/btenforce.env` or your custom env file location. Run `sudo launchctl bootout system/com.itech.btenforce` and `sudo launchctl bootstrap system /Library/LaunchDaemons/com.itech.btenforce.plist` to restart the daemon.
 - View the logs in `/var/log/btenforce` or your custom log path.
-- You may also obtain the log entries from the Unified Log with `log show --predicate 'eventMessage contains "btenforce"' --info --debug`. When `btenforce` is called by the daemon, it will appear in the log in a format similar to:
-`launchd: [system/com.itech.btenforce [93638]:] Successfully spawned btenforce[93638] because interval`
+- You may also obtain the log entries from the Unified Log with `log show --predicate 'eventMessage contains "btenforce"' --info --debug`.
 - `btenforce -debug` will override the day of week and time of day restrictions and run the script as though school is always in session. 
 
 # Setting Options
 `btenforce` can be configured by using any of the following methods:
-- You may modify the configuration on a single computer with `btenforce -configure`
-- Manually by editing `/Library/Application Support/i-Tech/btenforce.env`
+- You may modify the configuration on a single computer with `btenforce -configure`. This is convenient for testing.
+- Manually by editing `/Library/Application Support/i-Tech/btenforce.env`.
 - By running `btenforce-postinstall.sh` after installation.
 
 # Configuration Profile
