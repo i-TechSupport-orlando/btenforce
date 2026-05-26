@@ -2,7 +2,7 @@
 
 ## btenforce - Controls Bluetooth, Safari, and Login Items.
 ## Author: Keith Myers | https://i-techsupport.com
-
+##
 ## Unified log entries can be retrieved with: 
 ##    log show --predicate 'eventMessage contains "Reactivated BT"' --info --debug
 ##    log show --predicate 'eventMessage contains "Killed Safari for"' --info --debug
@@ -80,8 +80,6 @@
 ##            - Added the daemon's last exit code to the bug output.
 ##            - Removed the log variables so that the variable in the config file dominates
 ##              while allowing /var/log/btenforce as the default.
-##
-##
 ##
 ## Since this script is called repeatedly, the config file formatting is extremely
 ## strict to prevent errors. Each variable is on its own line and is in the format
