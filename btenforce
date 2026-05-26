@@ -1,12 +1,15 @@
 #!/bin/zsh
 
+## btenforce - Controls Bluetooth, Safari, and Login Items.
+## Author: Keith Myers | https://i-techsupport.com
+
 ## Unified log entries can be retrieved with: 
 ##    log show --predicate 'eventMessage contains "Reactivated BT"' --info --debug
 ##    log show --predicate 'eventMessage contains "Killed Safari for"' --info --debug
 ##
-##  Usage: sudo ./btenforce -configure
-##         sudo ./btenforce -debug
-##         sudo ./btenforce # No arguments for normal operation.
+## Usage: sudo ./btenforce -configure
+##        sudo ./btenforce -debug
+##        sudo ./btenforce # No arguments for normal operation.
 ##
 ##  Change Log:
 ##   4/2/2026 - Added -debug option to show the contents of the configuration file.
@@ -67,7 +70,7 @@
 ##            - Added a function to check the config file and count each entry, then add missing variables to the config file if any are missing.
 ##            - Reconfigured log file location and changed log file name format to include the date. Moved the log directory to /var/log/btenforce.
 ##            - Refined the append_log function to check if the log directory exists and create it if it does not.
-## 05/24/2026 - Version 2.3
+## 05/25/2026 - Version 2.3
 ##            - Minor bug fixes.
 ##            - Added additional debug info from the currently running daemon.
 ##            - Corrected minor bug in postinstall script.
@@ -79,7 +82,6 @@
 ##              while allowing /var/log/btenforce as the default.
 ##
 ##
-## Author: Keith Myers
 ##
 ## Since this script is called repeatedly, the config file formatting is extremely
 ## strict to prevent errors. Each variable is on its own line and is in the format
@@ -128,10 +130,6 @@ ORANGE=$'\033[38;2;255;165;0m'
 NC=$'\033[0m' # No color
 SB=$'\e[1m'
 EB=$'\e[0m'
-
-# Git repository for update checks.
-REPO="https://github.com/i-TechSupport-orlando/btenforce"
-
 
 # Add the date and time stamp to the log file.
 append_log () {
