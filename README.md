@@ -1,4 +1,4 @@
-# btenforce for macOS
+# `btenforce` for macOS
 Tested on macOS 13, 14, 15, and 26
 
 Preventing students from disabling Bluetooth in an effort to thwart classroom monitoring tools is a challenge. You cannot force Bluetooth to be on with an MDM profile because it then prevents the end-user from connecting peripherals. Also, if Bluetooth is off at the time you install the profile, the end-user will be unable to turn it back on.
@@ -34,7 +34,7 @@ See `btenforce.env`
 4. Create a policy to install `btenforce2.2.1.pkg` and run `btenforce-postinstall.sh` with the desired parameters.
 
 # Dependencies
-`blueutil` - https://github.com/toy/blueutil. The packaged release of btenforce contains `blueutil` version 2.9. Blueutil was originally written by Frederik Seiffert <ego@frederikseiffert.de>. Copyright (c) 2011-2025 Ivan Kuchin.
+`blueutil` - https://github.com/toy/blueutil. The packaged release of `btenforce` contains `blueutil` version 2.9. Blueutil was originally written by Frederik Seiffert <ego@frederikseiffert.de>. Copyright (c) 2011-2025 Ivan Kuchin.
 
 # Safari Prevention
 Most schools prefer students use Google Chrome due to the robust feature set designed spcificaly with schools in mind. The problem is macOS does not have an easy way to restrict its usage by end-users. `btenforce` effectively prevents Safari from being used because if the app is detected, it's killed. Hopefully Apple adds more robust web browser restrictions in a future version of macOS. Ensure that `btenforce` is installed after any workflows that require Safari such as before Chrome (or another browser) is installed. `btenforce` should not be enabled early in the enrollment process with `$SAFARI_CONTROL` set to `enforce`.
