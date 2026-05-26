@@ -5,7 +5,7 @@ Preventing students from disabling Bluetooth in an effort to thwart classroom mo
 
 A very simple launch daemon runs a script that checks if Bluetooth is turned off.  If it's off, the script turns it back on. Setting the launch daemon to a 5 second interval seems to work the best. This is controlled with the `BTENFORCE_INTERVAL` variable in the config file.
  
-### Blueutil version
+### `blueutil` version
 When macOS 26 was released, the latest versions of `blueutil` no longer worked with `btenforce`. This was due to a change in how the blueutil binary interacted with macOS. Version 2.9 seems to be less prone to error, so this version is included in the `btenforce` package. When `btenforce` is called, it checks whether `blueutil` exists in `/usr/local/bin/blueutil`. If it doesn't exist, it copies the binary to `/usr/local/bin/blueutil`. If it does exist, you can modify the post-install option `OVERWRITE_BLUEUTIL` to `true`. It will then back up the original `blueutil` and copy the 2.9 binary to `/usr/local/bin/blueutil`.
 
 ## Configuration variables and default values
@@ -34,7 +34,7 @@ See `btenforce.env`
 4. Create a policy to install `btenforce2.2.1.pkg` and run `btenforce-postinstall.sh` with the desired parameters.
 
 # Dependencies
-`blueutil` - https://github.com/toy/blueutil. The packaged release of `btenforce` contains `blueutil` version 2.9. Blueutil was originally written by Frederik Seiffert <ego@frederikseiffert.de>. Copyright (c) 2011-2025 Ivan Kuchin.
+`blueutil` - https://github.com/toy/blueutil. The packaged release of `btenforce` contains `blueutil` version 2.9. `blueutil` was originally written by Frederik Seiffert <ego@frederikseiffert.de>. Copyright (c) 2011-2025 Ivan Kuchin.
 
 # Safari Prevention
 Most schools prefer students use Google Chrome due to the robust feature set designed spcificaly with schools in mind. The problem is macOS does not have an easy way to restrict its usage by end-users. `btenforce` effectively prevents Safari from being used because if the app is detected, it's killed. Hopefully Apple adds more robust web browser restrictions in a future version of macOS. Ensure that `btenforce` is installed after any workflows that require Safari such as before Chrome (or another browser) is installed. `btenforce` should not be enabled early in the enrollment process with `$SAFARI_CONTROL` set to `enforce`.
