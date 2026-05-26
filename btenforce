@@ -27,7 +27,8 @@
 ##            - btenforce is now a combination of the Bluetooth utility plus
 ##              other functions such as Safari control and login item control. 
 ##              See the config file for more information.
-##            - The included version of blueutil is version 9 due to some irregularities with newer versions on macOS 26.
+##            - The included version of blueutil is version 9 due to some irregularities with 
+##              newer versions on macOS 26.
 ##            - Removed ANSI color coding from log messages.
 ##            - Added logging to configuration function.
 ##            - Added comment indicating that the script is running as a standard user.
@@ -39,22 +40,28 @@
 ##            - Corrected the installation function to check for the source files before copying them.
 ##            - Replaced deprecated launchctl unload/bootstrap with bootout/bootstrap.
 ##            - Added version to blueutil on install/update for logging.
-##            - Added check for blueutil and then copy it from /usr/local/share/btenforce/blueutil if not found in /usr/local/bin.
+##            - Added check for blueutil and then copy it from /usr/local/share/btenforce/blueutil if not 
+##              found in /usr/local/bin.
 ##            - Added MDM_TYPE variable for clarity in config file.
 ##            - Added version to the log header in the config file for easy identification.
-##            - Refined configuration function for usability and convenience. It will now check for configuration errors in the config file and report them to the user.
-##            - Added parameters to postinstall script for Jamf Pro MDM and Mosyle MDM. See the notes in the postinstall script for more information.
+##            - Refined configuration function for usability and convenience. It will now check for 
+##              configuration errors in the config file and report them to the user.
+##            - Added parameters to postinstall script for Jamf Pro MDM and Mosyle MDM. See the 
+##              notes in the postinstall script for more information.
 ##            - Enhanced time entry and validation for the configuration function.
 ##            - Added warning when configuring Safari function with osascript method on macOS.
-##            - Added the method used to configure btenforce to the config file along with the time and date of the configuration.
+##            - Added the method used to configure btenforce to the config file along with the time 
+##              and date of the configuration.
 ##            - Reduced unessential noise from logs.
 ##            - Added check for BTENFORCE_ACTIVE in config file and exit if not found.
 ##            - Added i-Tech banner with support info.
 ##            - Changed logic to continue if no user is logged on, then skip the controls and log the exit code.
 ##            - Added trap for INT and TERM signals to log the exit code and exit.
 ##            - Added trap for ERR signal to log the error message and exit.
-##            - Reduced unessential noise from logs when school is not in session by adding a flag file to prevent the script from logging on every execution.
-##            - Modified the shebang from /bin/zsh to /bin/bash for compatibility in the post-install script since that will be most likely executed by an MDM and if Mosyle, must be Bash.
+##            - Reduced unessential noise from logs when school is not in session by adding a flag file to 
+##              prevent the script from logging on every execution.
+##            - Modified the shebang from /bin/zsh to /bin/bash for compatibility in the post-install script 
+##              since that will be most likely executed by an MDM and if Mosyle, must be Bash.
 ##            - Added default config values so that btenforce will function without customizing the config.
 ##              Only Bluetooth enforcement is activated by default. Configure with --configure for other options, or 
 ##              use the btenforce-postinstall.sh script to configure btenforce with your desired settings.
@@ -63,12 +70,16 @@
 ##            - Corrected logic issue with the during_school_hours function.
 ## 05/23/2026 - Version 2.2
 ##            - Reorganized and improved logic with additional functions. Removed a number of unneeded functions.
-##            - Added debug function to the script. If run with --debug, it will display variables and check for various files.
+##            - Added debug function to the script. If run with --debug, it will display variables and check for 
+##              various files.
 ##            - Added an automatic backup to config file changes and if blueutil is overwritten.
 ##            - Added options to the -configure function to properly configure the script.
-##            - Added support for Mosyle MDM and Jamf Pro MDM. See the notes in the postinstall script for more information.
-##            - Added a function to check the config file and count each entry, then add missing variables to the config file if any are missing.
-##            - Reconfigured log file location and changed log file name format to include the date. Moved the log directory to /var/log/btenforce.
+##            - Added support for Mosyle MDM and Jamf Pro MDM. See the notes in the postinstall script for 
+##              more information.
+##            - Added a function to check the config file and count each entry, then add missing variables to the 
+##              config file if any are missing.
+##            - Reconfigured log file location and changed log file name format to include the date. Moved the 
+##              log directory to /var/log/btenforce.
 ##            - Refined the append_log function to check if the log directory exists and create it if it does not.
 ## 05/25/2026 - Version 2.2.1
 ##            - Minor bug fixes.
