@@ -70,7 +70,7 @@
 ##            - Added a function to check the config file and count each entry, then add missing variables to the config file if any are missing.
 ##            - Reconfigured log file location and changed log file name format to include the date. Moved the log directory to /var/log/btenforce.
 ##            - Refined the append_log function to check if the log directory exists and create it if it does not.
-## 05/25/2026 - Version 2.3
+## 05/25/2026 - Version 2.2.1
 ##            - Minor bug fixes.
 ##            - Added additional debug info from the currently running daemon.
 ##            - Corrected minor bug in postinstall script.
@@ -100,7 +100,7 @@
 #                             GLOBAL VARIABLES & FUNCTIONS                                #
 # ═══════════════════════════════════════════════════════════════════════════════════════ #
 
-VERSION="2.3"
+VERSION="2.2.1"
 SCRIPT_PATH="${0:A}"
 EXIT_CODE="0"
 ACTIVE_USER="false"

@@ -14,7 +14,7 @@
 ##
 ## Dependencies: blueutil (https://github.com/toy/blueutil) must be installed first.
 
-VERSION="2.3"
+VERSION="2.2.1"
 SCRIPT_DIR="$( cd "$( dirname "$0" )" && pwd )"
 SCRIPT_PATH="${SCRIPT_DIR}/$(basename "$0")"
 TODAY=$( date +%Y-%m-%d )
