@@ -108,7 +108,6 @@ Migrate to Jamf Pro ;-)
 `btenforce` can be configured by using any of the following methods:
 - You may modify the configuration on a single computer with `btenforce -configure`
 - Manually by editing `/Library/Application Support/i-Tech/btenforce.env`
-- By pushing out a new `.env`.
 - By running `btenforce-postinstall.sh` after installation.
 
 # Configuration Profile
