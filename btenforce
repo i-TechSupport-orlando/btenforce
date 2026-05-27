@@ -131,11 +131,11 @@ PLIST="/Library/LaunchDaemons/com.itech.btenforce.plist"
 EXPECTED_CONFIG_ENTRIES=12
 
 # Terminal color variables.
+ORANGE=$'\033[38;2;255;165;0m'
 YELLOW=$'\033[1;33m'
 GREEN=$'\033[0;32m'
 BLUE=$'\033[1;34m'
 RED=$'\033[0;31m'
-ORANGE=$'\033[38;2;255;165;0m'
 NC=$'\033[0m' # No color
 SB=$'\e[1m'
 EB=$'\e[0m'
