@@ -21,7 +21,7 @@ See `btenforce.env`
 ## Manual Installation
 1. Copy `btenforce` to `/usr/local/bin`
 2. Copy `blueutil` to `/usr/local/bin`
-3. Copy `com.itech.btenforce.plist` to `/Library/LaunchDaemons`
+3. Copy `com.itech.btenforce.plist` to `/Library/LaunchDaemons/com.itech.btenforce.plist`
 4. Copy `btenforce.env` to `/Library/Application Support/i-Tech/btenforce`
 5. Modify `btenforce.env` as needed.
 6. Set ownership of the files to `root:wheel` and set permissions to prevent changes by students (`644`)
