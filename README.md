@@ -12,7 +12,7 @@ When macOS 26 was released, the latest versions of `blueutil` no longer worked w
 See `btenforce.env`
 
 ## Daemon Status and Control
-- Check Daemon:        `sudo launchctl list | grep itech` A positive result will show something similar to `-  0   com.itech.btenforce`. If `btenforce` is being ran it will show the PID instead of a '-'.
+- Check Daemon:        `sudo launchctl list | grep itech` A positive result will show something similar to `-  0   com.itech.btenforce`. If `btenforce` is being ran it will show the PID instead of a `-`.
 - Unload Daemon:       `sudo launchctl bootout system/com.itech.btenforce`
 - Start Daemon:        `sudo launchctl bootstrap system /Library/LaunchDaemons/com.itech.btenforce.plist`
 
