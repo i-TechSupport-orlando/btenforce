@@ -1,5 +1,5 @@
 # `btenforce` for macOS
-Tested on macOS 13, 14, 15, and 26
+Tested on macOS 13, 14, 15, 26, 27
 
 Preventing students from disabling Bluetooth in an effort to thwart classroom monitoring tools is a challenge. You cannot force Bluetooth to be on with an MDM profile because it then prevents the end-user from connecting peripherals. Also, if Bluetooth is off at the time you install the profile, the end-user will be unable to turn it back on.
 
